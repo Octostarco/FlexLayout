@@ -33,8 +33,8 @@
         "test": "cypress run-ct",
         "format": "prettier --write src"
     },
-    "author": "Caplin Systems Ltd",
-    "repository": "https://github.com/caplin/FlexLayout",
+    "author": "Caplin Systems Ltd, Octostar Research",
+    "repository": "https://github.com/Octostarco/FlexLayout",
     "license": "ISC",
     "peerDependencies": {
         "react": "^16.13.1",
