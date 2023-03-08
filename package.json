@@ -1,5 +1,5 @@
 {
-    "name": "flexlayout-react",
+    "name": "@Octostarco/flexlayout-react",
     "version": "0.7.7",
     "description": "A multi-tab docking layout manager",
     "main": "lib/index.js",
@@ -34,7 +34,7 @@
         "format": "prettier --write src"
     },
     "author": "Caplin Systems Ltd, Octostar Research",
-    "repository": "https://github.com/Octostarco/FlexLayout",
+    "repository": "https://github.com/Octostarco/flexlayout-react",
     "license": "ISC",
     "peerDependencies": {
         "react": "^16.13.1",
