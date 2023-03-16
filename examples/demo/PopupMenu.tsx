@@ -1,15 +1,9 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom/client";
+import * as ReactDOM from "react-dom";
 import { DragDrop } from "../../src/index";
 
 /** @hidden @internal */
-export function showPopup(
-    title: string,
-    layoutDiv: HTMLDivElement,
-    x: number, y: number,
-    items: string[],
-    onSelect: (item: string | undefined) => void,
-) {
+export function showPopup(title: string, layoutDiv: HTMLDivElement, x: number, y: number, items: string[], onSelect: (item: string | undefined) => void) {
     const currentDocument = layoutDiv.ownerDocument;
     const layoutRect = layoutDiv.getBoundingClientRect();
 
@@ -36,7 +30,7 @@ export function showPopup(
         DragDrop.instance.hideGlass();
         onSelect(item);
         layoutDiv.removeChild(elm);
-        root.unmount();
+        ReactDOM.unmountComponentAtNode(elm);
         elm.removeEventListener("mousedown", onElementMouseDown);
         currentDocument.removeEventListener("mousedown", onDocMouseDown);
     };
@@ -52,12 +46,8 @@ export function showPopup(
     elm.addEventListener("mousedown", onElementMouseDown);
     currentDocument.addEventListener("mousedown", onDocMouseDown);
 
-    const root = ReactDOM.createRoot(elm);
-    root.render(<PopupMenu
-        currentDocument={currentDocument}
-        onHide={onHide}
-        title={title}
-        items={items} />);
+    // const root = ReactDOM.createRoot(elm);
+    ReactDOM.render(<PopupMenu currentDocument={currentDocument} onHide={onHide} title={title} items={items} />, elm);
 }
 
 /** @hidden @internal */
@@ -78,9 +68,7 @@ const PopupMenu = (props: IPopupMenuProps) => {
     };
 
     const itemElements = items.map((item) => (
-        <div key={item}
-            className="popup_menu_item"
-            onClick={(event) => onItemClick(item, event)}>
+        <div key={item} className="popup_menu_item" onClick={(event) => onItemClick(item, event)}>
             {item}
         </div>
     ));
@@ -89,5 +77,6 @@ const PopupMenu = (props: IPopupMenuProps) => {
         <div className="popup_menu">
             <div className="popup_menu_title">{title}</div>
             {itemElements}
-        </div>);
+        </div>
+    );
 };
