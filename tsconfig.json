@@ -12,7 +12,17 @@
         "strict": true,
         "noUnusedLocals": true,
         "jsx": "react",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "types": [
+            "node",
+        ],
+        "lib": [
+          "es6",
+          "webworker",
+          "dom",
+          "ESNext",
+          "scripthost"
+        ]
     },
     "include": ["./src/**/*", "./examples/demo/*"]
 }

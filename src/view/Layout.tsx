@@ -269,6 +269,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     /** @internal */
     private resizeObserver?: ResizeObserver;
 
+    private _worker: SharedWorker;
+
     constructor(props: ILayoutProps) {
         super(props);
         this.props.model._setChangeListener(this.onModelChange);
@@ -292,6 +294,23 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         };
 
         this.onDragEnter = this.onDragEnter.bind(this);
+
+        // Create the Worker object and pass it the URL of the worker script
+        // @ts-ignore
+        this._worker = new SharedWorker(new URL("../shared.worker.ts", import.meta.url));
+        this._worker.port.start();
+        
+        // const self = this;
+
+        this._worker.port.onmessage = function (e: MessageEvent) {     
+            if (window.name === "TEST") {
+                console.log("Caller Received:", e.data);
+
+                // const event = new MouseEvent("mousedown", { bubbles: true });
+                // self.selfRef.current?.dispatchEvent(event);
+            }
+        }
+        this._worker.port.postMessage("Message");
     }
 
     /** @internal */
@@ -848,6 +867,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             this.dragNode = node;
             this.dragDivText = dragDivText;
             DragDrop.instance.startDrag(event, this.onDragStart, this.onDragMove, this.onDragEnd, this.onCancelDrag, onClick, onDoubleClick, this.currentDocument, this.selfRef.current!);
+
+            // SHARED WORKER
+            // TODO
+            this.postMessage(event as Event);
         }
     };
 
@@ -934,7 +957,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal */
     onDragMove = (event: React.MouseEvent<Element>) => {
-        if (this.firstMove === false) {
+        if (!this.firstMove) {
             const speed = this.props.model._getAttribute("tabDragSpeed") as number;
             this.outlineDiv!.style.transition = `top ${speed}s, left ${speed}s, width ${speed}s, height ${speed}s`;
         }
@@ -944,11 +967,18 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             x: event.clientX - clientRect.left,
             y: event.clientY - clientRect.top,
         };
-
+        
+        // TODO ALLOW MOVE TO OTHER SCREEN, DETECT OTHER SCREEN AS A START OF DRAGGING
         this.checkForBorderToShow(pos.x, pos.y);
 
         // keep it between left & right
         const dragRect = this.dragDiv!.getBoundingClientRect();
+
+        // TODO remove console log
+        // TODO ALLOW MOVE TO OTHER SCREEN, DETECT OTHER SCREEN AS A START OF DRAGGING
+        console.log("DRAGGING RECT: ", dragRect);
+        console.log("showHiddenBorder: ", this.state.showHiddenBorder);
+        
         let newLeft = pos.x - dragRect.width / 2;
         if (newLeft + dragRect.width > clientRect.width) {
             newLeft = clientRect.width - dragRect.width;
@@ -957,22 +987,41 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         this.dragDiv!.style.left = newLeft + "px";
         this.dragDiv!.style.top = pos.y + 5 + "px";
+
+        // TODO remove console log
+        console.log("dragRectRendered: ", this.dragRectRendered);
+        console.log("visibility: ", this.dragDiv!.style.visibility);
+        
         if (this.dragRectRendered && this.dragDiv!.style.visibility === "hidden") {
             // make visible once the drag rect has been rendered
             this.dragDiv!.style.visibility = "visible";
         }
 
         let dropInfo = this.props.model._findDropTargetNode(this.dragNode!, pos.x, pos.y);
+
+        // TODO remove console log
+        // TODO DROP INFO IS UNDEFINED IF DRAGGING IN NEW BROWSER
+        console.log("DROP INFO: ", dropInfo);
+        
         if (dropInfo) {
             if (this.props.onTabDrag) {
+                // TODO remove console log
+                console.log("onTabDrag: ", this.props);
                 this.handleCustomTabDrag(dropInfo, pos, event);
             } else {
+                // TODO remove console log
+                console.log("NOT onTabDrag: ", this.props);
                 this.dropInfo = dropInfo;
                 this.outlineDiv!.className = this.getClassName(dropInfo.className);
                 dropInfo.rect.positionElement(this.outlineDiv!);
                 this.outlineDiv!.style.visibility = "visible";
             }
         }
+
+        // SEND TO ANOTHER WINDOW
+        // TODO
+        console.log("POST MESSAGE!");
+        this._worker.port.postMessage("POST MESSAGE!");
     };
 
     /** @internal */
@@ -986,6 +1035,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         this.setState({ showEdges: false });
         DragDrop.instance.hideGlass();
 
+        // TODO remove console log
+        console.log("onDragEnd - DROP INFO: ", this.dropInfo);
+        
         if (this.dropInfo) {
             if (this.customDrop) {
                 this.newTabJson = undefined;
@@ -1013,6 +1065,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
         this.setState({ showHiddenBorder: DockLocation.CENTER });
+
+        // TODO
+        // this._worker.port.postMessage(this.dropInfo);
     };
 
     /** @internal */
@@ -1107,6 +1162,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
 
+        // TODO remove console log
+        console.log("Is Over Edge: ", overEdge);
+
         let location = DockLocation.CENTER;
         if (!overEdge) {
             if (x <= r.x + margin) {
@@ -1119,10 +1177,42 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 location = DockLocation.BOTTOM;
             }
         }
-
+        
         if (location !== this.state.showHiddenBorder) {
             this.setState({ showHiddenBorder: location });
         }
+    }
+
+    /** @internal */
+    private _getLocationEvent(event: any) {
+        let posEvent: any = event;
+        if (event && event.touches) {
+            posEvent = event.touches[0];
+        }
+        return posEvent;
+    }
+
+    /** @internal 
+     * TODO Remove this, test purpose only*/
+    private postMessage(event: Event) {
+        // USING SHARED WORKER INSTANCE
+        this._worker.port.postMessage("DRAGGING!");
+
+        const posEvent = this._getLocationEvent(event);
+
+        const component = event?.currentTarget as HTMLDivElement;
+        const componentRect = component?.getBoundingClientRect();
+        const offsetX = posEvent.clientX - componentRect.left;
+        const offsetY = posEvent.clientY - componentRect.top;
+        const data = {
+            type: "startDrag",
+            x: posEvent.clientX,
+            y: posEvent.clientY,
+            offsetX,
+            offsetY,
+        };
+
+        this._worker.port.postMessage(data);
     }
 
     /** @internal */

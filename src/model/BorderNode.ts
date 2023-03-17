@@ -364,6 +364,14 @@ export class BorderNode extends Node implements IDropTarget {
             }
         }
 
+        // TODO ELSE IF OTHER WINDOW
+        else {
+            const outlineRect = new Rect(x - 2, y, 3, 50);
+            dropInfo = new DropInfo(this, outlineRect, dockLocation, this._children.length, CLASSES.FLEXLAYOUT__OUTLINE_RECT);
+        }
+
+        // TODO remove console log
+        console.log("CAN DROP: ", dropInfo);
         return dropInfo;
     }
 

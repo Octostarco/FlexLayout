@@ -36,6 +36,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     showingPopupMenu: boolean = false;
     htmlTimer?: any = null;
     layoutRef?: React.RefObject<Layout>;
+    connectedApps: string[] = [];
 
     constructor(props: any) {
         super(props);
@@ -555,12 +556,100 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
                             >
                                 Add Indirect
                             </button>
+                            <button className="toolbar_control"
+                                    disabled={this.state.adding}
+                                    style={{ marginLeft: 5 }}
+                                    title="Add using Layout.addTabWithDragAndDropIndirect"
+                                    onClick={this.onOpenNewWindowClick.bind(this)}>New Window</button>
                         </div>
                         <div className="contents">{contents}</div>
                     </div>
                 </ContextExample.Provider>
             </React.StrictMode>
         );
+    }
+
+    onOpenNewWindowClick(event: React.MouseEvent) {
+        const data = this.getWindowData();
+
+        let
+            dock   = "right",
+            size   = "700",
+            height, left, top, width;
+
+        switch (dock) {
+            case 'bottom':
+                height = size;
+                left   = data.screenLeft;
+                top    = data.outerHeight + data.screenTop - 52;
+                width  = data.outerWidth;
+                break;
+            case 'left':
+                height = data.outerHeight - 78;
+                left   = data.screenLeft  - 1;
+                top    = data.screenTop   + 28;
+                width  = size;
+                break;
+            case 'right':
+                height = data.outerHeight - 78;
+                left   = data.outerWidth  + data.screenLeft;
+                top    = data.screenTop   + 5;
+                width  = size;
+                break;
+            case 'top':
+                height = size;
+                left   = data.screenLeft;
+                top    = data.screenTop - 1 + 28;
+                width  = data.outerWidth;
+                break;
+        }
+
+        this.windowOpen({
+            url           : '../demo/index.html',
+            windowFeatures: `height=${height},left=${left},top=${top},width=${width}`,
+            windowName    : "TEST"
+        });
+        this.connectedApps.push("TEST");
+    }
+
+    /**
+     * window.screen is not spreadable
+     * @returns {Object}
+     */
+    getWindowData() {
+        let win    = window,
+            screen = win.screen;
+
+        return {
+            innerHeight: win.innerHeight,
+            innerWidth : win.innerWidth,
+            outerHeight: win.outerHeight,
+            outerWidth : win.outerWidth,
+            screen: {
+                availHeight: screen.availHeight,
+                // availLeft  : screen.availLeft,
+                // availTop   : screen.availTop,
+                availWidth : screen.availWidth,
+                colorDepth : screen.colorDepth,
+                height     : screen.height,
+                orientation: {angle: screen.orientation?.angle, type: screen.orientation?.type},
+                pixelDepth : screen.pixelDepth,
+                width      : screen.width
+            },
+            screenLeft: win.screenLeft,
+            screenTop : win.screenTop,
+        };
+    }
+
+    /**
+     * Open a new popup window
+     * @param {Object} data
+     * @param {String} data.url
+     * @param {String} data.windowFeatures
+     * @param {String} data.windowName
+     */
+    windowOpen(data: { url: any; windowFeatures: any; windowName: any; }) {
+        window.open(data.url, data.windowName, data.windowFeatures);
     }
 
     makeFakeData() {
