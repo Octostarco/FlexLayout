@@ -302,6 +302,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         // @ts-ignore
         this._worker = new SharedWorker(new URL("../shared.worker.ts", import.meta.url));
         this._worker.port.start();
+
     }
 
     /** @internal */
@@ -361,26 +362,18 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         const self = this;
 
-        this._worker.port.onmessage = function (e: MessageEvent) {     
+        this._worker.port.onmessage = function (e: MessageEvent) {
             if (window.name === "TEST" && e && !self.handlingNotification) {
                 self.handlingNotification = true;
-                console.log("Caller Received:", e.data);
-
-                // self.dragNode = e.data;
-                // const message = JSON.parse(e.data);
-                // self.onDragEnter(e.data);
-
-                // const event = new MouseEvent("mousedown", { bubbles: true });
-                // self.selfRef.current?.dispatchEvent(event);
-                self.dragNode = TabNode._fromJson(e.data, self.props.model, false);
+                self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                 (self.dragNode as TabNode)._setTabRect(rect);
-                console.log("dragRect",(self.dragNode as TabNode).getTabRect())
-                console.log("dragNode", self.dragNode)
-                // TODO call dragStart instead of onDragStart
-                // self.dragStart();
-                self.onDragStart();
+
+                const event = self.deserializeMouseEvent(e.data.event);
+
+                // self.dragStart(undefined, "dragged tab", self.dragNode, true);
+                self.dragStart(event, "dragged tab", self.dragNode, true);
             } else {
                 self.handlingNotification = false;
             }
@@ -756,7 +749,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param onDrop a callback to call when the drag is complete (node and event will be undefined if the drag was cancelled)
      */
     addTabWithDragAndDrop(dragText: string | undefined, json: IJsonTabNode, onDrop?: (node?: Node, event?: Event) => void) {
-        console.log("addTabWithDragAndDrop");
         this.fnNewNodeDropped = onDrop;
         this.newTabJson = json;
         this.dragStart(undefined, dragText, TabNode._fromJson(json, this.props.model, false), true, undefined, undefined);
@@ -768,7 +760,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param dragText the text to show on the drag panel
      */
     moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string) {
-        console.log("moveTabWithDragAndDrop");
         this.dragStart(undefined, dragText, node, true, undefined, undefined);
     }
 
@@ -781,7 +772,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param onDrop a callback to call when the drag is complete (node and event will be undefined if the drag was cancelled)
      */
     addTabWithDragAndDropIndirect(dragText: string | undefined, json: IJsonTabNode, onDrop?: (node?: Node, event?: Event) => void) {
-        console.log("addTabWithDragAndDropIndirect");
         this.fnNewNodeDropped = onDrop;
         this.newTabJson = json;
 
@@ -869,7 +859,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal */
     onDragDivMouseDown = (event: Event) => {
-        console.log("onDragDivMouseDown");
         event.preventDefault();
         this.dragStart(event, this.dragDivText, TabNode._fromJson(this.newTabJson, this.props.model, false), true, undefined, undefined);
     };
@@ -883,7 +872,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         onClick?: (event: Event) => void,
         onDoubleClick?: (event: Event) => void
     ) => {
-        console.log("dragStart");
         if (!allowDrag) {
             DragDrop.instance.startDrag(event, undefined, undefined, undefined, undefined, onClick, onDoubleClick, this.currentDocument, this.selfRef.current!);
         } else {
@@ -945,7 +933,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal */
     onDragStart = () => {
-        console.log("onDragStart")
         this.dropInfo = undefined;
         this.customDrop = undefined;
         const rootdiv = this.selfRef.current!;
@@ -954,7 +941,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         this.outlineDiv.style.visibility = "hidden";
         rootdiv.appendChild(this.outlineDiv);
 
-        if (this.dragDiv == null) {
+        if (!this.dragDiv) {
             this.dragDiv = this.currentDocument!.createElement("div");
             this.dragDiv.className = this.getClassName(CLASSES.FLEXLAYOUT__DRAG_RECT);
             this.dragDiv.setAttribute("data-layout-path", "/drag-rectangle");
@@ -1021,7 +1008,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         }
 
         if (clientRect.right < event.clientX && !this.notificationSent) {
-            console.log("sending notif");
             this.notificationSent = true;
             this.postMessage(event, dragRect);
         } else if (clientRect.right >= event.clientX) {
@@ -1134,7 +1120,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     onDragEnter(event: React.DragEvent<HTMLDivElement>) {
         // DragDrop keeps track of number of dragenters minus the number of
         // dragleaves. Only start a new drag if there isn't one already.
-        console.log("onDragEnter")
         if (DragDrop.instance.isDragging())
             return;
         const drag = this.props.onExternalDrag!(event);
@@ -1162,9 +1147,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
 
-        // TODO remove console log
-        // console.log("Is Over Edge: ", overEdge);
-
         let location = DockLocation.CENTER;
         if (!overEdge) {
             if (x <= r.x + margin) {
@@ -1185,20 +1167,40 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal 
      * TODO Remove this, test purpose only*/
-    private postMessage(event: Event | React.MouseEvent<Element> | React.MouseEvent<HTMLDivElement, MouseEvent>, dragRect: DOMRect) {
-        const node = this.dragNode as TabNode;
-
-        if (this.dragNode instanceof TabNode) {
-            console.log("bingo");
+    private postMessage(event: React.MouseEvent<Element, MouseEvent>, dragRect: DOMRect) {
+        if (!event.target) {
+            return;
         }
+        
+        const node = this.dragNode as TabNode;
 
         const data = {
             type: "startDrag",
             dragNode: this.dragNode?.toJson(),
-            dragRect: node.getTabRect()
+            dragRect: node.getTabRect(),
+            event: this.cloneMouseEvent(event),
         };
 
         this._worker.port.postMessage(data);
+    }
+
+    cloneMouseEvent(event: React.MouseEvent<Element, MouseEvent>) { 
+        const { type, ...eventData } = event;
+        const target = event.target as HTMLDivElement; 
+        
+        const serializedTarget = new XMLSerializer().serializeToString(target);
+
+        return { type, eventData, serializedTarget }; 
+    }
+
+    deserializeMouseEvent(serializedEvent: any) { 
+        const { type, eventData, serializedTarget } = serializedEvent; 
+
+        const target = new DOMParser().parseFromString(serializedTarget, "text/html");
+        const event = new MouseEvent(type, eventData);
+        Object.defineProperty(event, 'target', {value: target.body} ); 
+
+        return event; 
     }
 
     /** @internal */
