@@ -371,8 +371,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 (self.dragNode as TabNode)._setTabRect(rect);
 
                 const event = self.deserializeMouseEvent(e.data.event);
-
-                // self.dragStart(undefined, "dragged tab", self.dragNode, true);
                 self.dragStart(event, "dragged tab", self.dragNode, true);
             } else {
                 self.handlingNotification = false;
@@ -1016,7 +1014,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     };
 
     /** @internal */
-    onDragEnd = (event: Event) => {
+    onDragEnd = (event: Event) => {        
         const rootdiv = this.selfRef.current!;
         rootdiv.removeChild(this.outlineDiv!);
         rootdiv.removeChild(this.dragDiv!);
@@ -1025,6 +1023,14 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         this.setState({ showEdges: false });
         DragDrop.instance.hideGlass();
+
+        // Reset Sending Browser Instance info because it is already sent to second browser
+        if (this.notificationSent) {
+            if (this.dragNode && this.dropInfo) {
+                this.doAction(Actions.deleteTab(this.dragNode?.getId()));
+            }
+            return;
+        }
         
         if (this.dropInfo) {
             if (this.customDrop) {
