@@ -10,7 +10,6 @@ _self.onconnect = function (e) {
     _instances.push(port);
 
     port.addEventListener("message", function (e) {
-        // console.log("Worker Received", e.data);
         _instances.forEach((i) => i.postMessage(e.data));
     });
 

@@ -272,7 +272,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     private _worker: SharedWorker;
 
     private notificationSent = false;
-    private handlingNotification = false;
 
     constructor(props: ILayoutProps) {
         super(props);
@@ -363,17 +362,21 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const self = this;
 
         this._worker.port.onmessage = function (e: MessageEvent) {
-            if (window.name === "TEST" && e && !self.handlingNotification) {
-                self.handlingNotification = true;
+            if (window.name === "TEST" && e) {
+                console.log("Subscriber received message")
                 self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                 (self.dragNode as TabNode)._setTabRect(rect);
 
                 const event = self.deserializeMouseEvent(e.data.event);
+                
+                event.preventDefault();
                 self.dragStart(event, "dragged tab", self.dragNode, true);
-            } else {
-                self.handlingNotification = false;
+                setTimeout(()=> {
+                    console.log("drag stopped")
+                    self.onCancelDrag(true);
+                }, 5000)
             }
         }
     }
@@ -1175,6 +1178,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * TODO Remove this, test purpose only*/
     private postMessage(event: React.MouseEvent<Element, MouseEvent>, dragRect: DOMRect) {
         if (!event.target) {
+            console.log("Event missing target");
             return;
         }
         
