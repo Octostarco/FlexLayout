@@ -373,6 +373,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 
                 event.preventDefault();
                 self.dragStart(event, "dragged tab", self.dragNode, true);
+                // self.dragStart(event, "Dragged Tab", self.dragNode, self.dragNode.isEnableDrag(), self.onClick);
+                
                 setTimeout(()=> {
                     console.log("drag stopped")
                     self.onCancelDrag(true);
@@ -380,6 +382,13 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
     }
+
+    onClick = (event: Event) => {
+        if (!this.dragNode) {
+            return
+        }
+        this.doAction(Actions.selectTab(this.dragNode?.getId()));
+    };
 
     /** @internal */
     componentDidUpdate() {
@@ -1058,7 +1067,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 }
                 this.newTabJson = undefined;
             } else if (this.dragNode !== undefined) {
-                this.doAction(Actions.moveNode(this.dragNode.getId(), this.dropInfo.node.getId(), this.dropInfo.location, this.dropInfo.index));
+                this.doAction(Actions.moveNode(this.dragNode.getId(), this.dragNode, this.dropInfo.node.getId(), this.dropInfo.location, this.dropInfo.index));
             }
         }
         this.setState({ showHiddenBorder: DockLocation.CENTER });

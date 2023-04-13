@@ -1,5 +1,7 @@
 import { DockLocation } from "../DockLocation";
 import { Action } from "./Action";
+import { IDraggable } from "./IDraggable";
+import { Node } from "./Node";
 
 /**
  * The Action creator class for FlexLayout model actions
@@ -42,15 +44,17 @@ export class Actions {
     /**
      * Moves a node (tab or tabset) from one location to another
      * @param fromNodeId the id of the node to move
+     * @param fromNode
      * @param toNodeId the id of the node to receive the moved node
      * @param location the location where the moved node will be added, one of the DockLocation enum values.
      * @param index for docking to the center this value is the index of the tab, use -1 to add to the end.
      * @param select (optional) whether to select the moved tab(s) in new tabset, overriding autoSelectTab
      * @returns {Action} the action
      */
-    static moveNode(fromNodeId: string, toNodeId: string, location: DockLocation, index: number, select?: boolean): Action {
+    static moveNode(fromNodeId: string, fromNode: Node & IDraggable, toNodeId: string, location: DockLocation, index: number, select?: boolean): Action {
         return new Action(Actions.MOVE_NODE, {
-            fromNode: fromNodeId,
+            fromNodeId: fromNodeId,
+            fromNode: fromNode,
             toNode: toNodeId,
             location: location.getName(),
             index,
