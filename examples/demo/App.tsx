@@ -30,7 +30,7 @@ const fields = ["Name", "Field1", "Field2", "Field3", "Field4", "Field5"];
 
 const ContextExample = React.createContext("");
 
-class App extends React.Component<any, { layoutFile: string | null; model: Model | null; json?: string; adding: boolean; fontSize: string; realtimeResize: boolean }> {
+class App extends React.Component<any, { layoutFile: string | null; model: Model | null; json?: string; adding: boolean; fontSize: string; realtimeResize: boolean, window?: WindowProxy | null; }> {
     loadingLayoutName?: string;
     nextGridIndex: number = 1;
     showingPopupMenu: boolean = false;
@@ -493,7 +493,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         return (
             <React.StrictMode>
                 <ContextExample.Provider value="from context">
-                    <div className="app">
+                    <div className="app" onMouseLeave={ this.onMouseLeave.bind(this) }>
                         <div className="toolbar" dir="ltr">
                             <select className="toolbar_control" onChange={this.onSelectLayout}>
                                 <option value="default">Default</option>
@@ -568,6 +568,11 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
             </React.StrictMode>
         );
     }
+
+    /** @internal */
+    onMouseLeave = () => {
+        this.state.window?.focus();
+    };
 
     onOpenNewWindowClick(event: React.MouseEvent) {
         const data = this.getWindowData();
@@ -649,7 +654,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
      * @param {String} data.windowName
      */
     windowOpen(data: { url: any; windowFeatures: any; windowName: any; }) {
-        window.open(data.url, data.windowName, data.windowFeatures);
+        this.setState({ window: window.open(data.url, data.windowName, data.windowFeatures) });
     }
 
     makeFakeData() {

@@ -363,7 +363,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         this._worker.port.onmessage = function (e: MessageEvent) {
             if (window.name === "TEST" && e) {
-                console.log("Subscriber received message")
                 self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
@@ -372,13 +371,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 const event = self.deserializeMouseEvent(e.data.event);
                 
                 event.preventDefault();
-                self.dragStart(event, "dragged tab", self.dragNode, true);
-                // self.dragStart(event, "Dragged Tab", self.dragNode, self.dragNode.isEnableDrag(), self.onClick);
-                
-                setTimeout(()=> {
-                    console.log("drag stopped")
-                    self.onCancelDrag(true);
-                }, 5000)
+                // self.dragStart(event, "dragged tab", self.dragNode, true);
+                self.dragStart(event, e.data.dragNode.name, self.dragNode, self.dragNode.isEnableDrag(), self.onClick);
             }
         }
     }
