@@ -362,7 +362,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const self = this;
 
         this._worker.port.onmessage = function (e: MessageEvent) {
-            if (window.name === "TEST" && e) {
+            if (!DragDrop.instance.isDragging() && e) {                
                 self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
@@ -1011,10 +1011,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
 
-        if (clientRect.right < event.clientX && !this.notificationSent) {
+        if ((clientRect.right < event.clientX || clientRect.left > event.clientX) && !this.notificationSent) {
             this.notificationSent = true;
             this.postMessage(event, dragRect);
-        } else if (clientRect.right >= event.clientX) {
+        } else if (clientRect.right >= event.clientX || clientRect.left <= event.clientX) {
             this.notificationSent = false;
         }
     };

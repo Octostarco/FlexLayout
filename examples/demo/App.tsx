@@ -493,7 +493,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         return (
             <React.StrictMode>
                 <ContextExample.Provider value="from context">
-                    <div className="app" onMouseLeave={ this.onMouseLeave.bind(this) }>
+                    <div className="app">
                         <div className="toolbar" dir="ltr">
                             <select className="toolbar_control" onChange={this.onSelectLayout}>
                                 <option value="default">Default</option>
@@ -569,11 +569,6 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         );
     }
 
-    /** @internal */
-    onMouseLeave = () => {
-        this.state.window?.focus();
-    };
-
     onOpenNewWindowClick(event: React.MouseEvent) {
         const data = this.getWindowData();
 
@@ -596,9 +591,9 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
                 width  = size;
                 break;
             case 'right':
-                height = data.outerHeight - 78;
+                height = data.outerHeight;
                 left   = data.outerWidth  + data.screenLeft;
-                top    = data.screenTop   + 5;
+                top    = data.screenTop;
                 width  = size;
                 break;
             case 'top':
@@ -611,10 +606,11 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
 
         this.windowOpen({
             url           : '../demo/index.html',
-            windowFeatures: `height=${height},left=${left},top=${top},width=${width}`,
-            windowName    : "TEST"
+            windowFeatures: `height=${height}, left=${left}, top=${top}, width=${width}, popup="true"`,
+            windowName    : "Docked Window"
         });
-        this.connectedApps.push("TEST");
+
+        this.connectedApps.push("Docked Window");
     }
 
     /**
