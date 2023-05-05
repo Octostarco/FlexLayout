@@ -311,7 +311,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    private _onMouseUp(event: Event) {
+    _onMouseUp(event: Event) {
         this._lastEvent = event;
 
         const posEvent = this._getLocationEventEnd(event);

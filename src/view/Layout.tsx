@@ -367,22 +367,20 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                 (self.dragNode as TabNode)._setTabRect(rect);
-
-                const event = self.deserializeMouseEvent(e.data.event);
                 
-                event.preventDefault();
-                // self.dragStart(event, "dragged tab", self.dragNode, true);
-                self.dragStart(event, e.data.dragNode.name, self.dragNode, self.dragNode.isEnableDrag(), self.onClick);
+                self.addTabWithDragAndDropIndirect("Release button click and click again to continue!\n(Drag to location)", {
+                    component: (self.dragNode as TabNode).getComponent(),
+                    config: (self.dragNode as TabNode).getConfig(),
+                    name: e.data.dragNode.name,
+                }, undefined);
+
+                // self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name);
+            } else {
+                DragDrop.instance._onMouseUp(e);
+                self.onCancelDrag(true);
             }
         }
     }
-
-    onClick = (event: Event) => {
-        if (!this.dragNode) {
-            return
-        }
-        this.doAction(Actions.selectTab(this.dragNode?.getId()));
-    };
 
     /** @internal */
     componentDidUpdate() {
@@ -1189,7 +1187,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         const data = {
             type: "startDrag",
-            dragNode: this.dragNode?.toJson(),
+            dragNode: node?.toJson(),
             dragRect: node.getTabRect(),
             event: this.cloneMouseEvent(event),
         };
