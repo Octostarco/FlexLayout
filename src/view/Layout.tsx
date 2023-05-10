@@ -363,13 +363,13 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const self = this;
 
         this._worker.port.onmessage = function (e: MessageEvent) {
-            /*if (DragDrop.instance.isDragging() && e.data.type === "drop") {
+            if (DragDrop.instance.isDragging() && e.data.type === "drop") {
                 DragDrop.instance._onMouseUp(e);
+                DragDrop.instance._startX = 0;
                 self.initialDrag = false;
             } if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
                 self.onCancelDrag(true);
-            } else*/ if (self.initialDrag) {
-                // DragDrop.instance.registerListeners(e, self.currentDocument, self.selfRef.current!);
+            } else if (self.initialDrag) {
                 let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
                 DragDrop.instance._onMouseMove(event);
             } else if (!DragDrop.instance.isDragging() && e) {
@@ -378,7 +378,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                 (self.dragNode as TabNode)._setTabRect(rect);
-
+                
                 let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
                 self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
             }
