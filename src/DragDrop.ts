@@ -35,9 +35,9 @@ export class DragDrop {
     /** @internal */
     private _clickY: number;
     /** @internal */
-    private _startX: number = 0;
+    _startX: number = 0;
     /** @internal */
-    private _startY: number = 0;
+    _startY: number = 0;
     /** @internal */
     private _dragDepth: number = 0;
     /** @internal */
@@ -47,7 +47,7 @@ export class DragDrop {
     /** @internal */
     private _active: boolean = false; // drag and drop is in progress, can be used on ios to prevent body scrolling (see demo)
     /** @internal */
-    private _document?: HTMLDocument;
+    _document?: HTMLDocument;
     /** @internal */
     private _rootElement?: HTMLElement | undefined;
     /** @internal */
@@ -254,7 +254,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    private _getLocationEvent(event: any) {
+    _getLocationEvent(event: any) {
         let posEvent: any = event;
         if (event && event.touches) {
             posEvent = event.touches[0];
@@ -287,7 +287,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    private _onMouseMove(event: Event | React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement> | React.DragEvent<Element>) {
+    _onMouseMove(event: Event | React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement> | React.DragEvent<Element>) {
         this._lastEvent = event;
 
         const posEvent = this._getLocationEvent(event);

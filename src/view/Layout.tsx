@@ -272,6 +272,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     private _worker: SharedWorker;
 
     private notificationSent = false;
+    private initialDrag = false;
 
     constructor(props: ILayoutProps) {
         super(props);
@@ -362,22 +363,24 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const self = this;
 
         this._worker.port.onmessage = function (e: MessageEvent) {
-            if (!DragDrop.instance.isDragging() && e) {                
+            /*if (DragDrop.instance.isDragging() && e.data.type === "drop") {
+                DragDrop.instance._onMouseUp(e);
+                self.initialDrag = false;
+            } if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
+                self.onCancelDrag(true);
+            } else*/ if (self.initialDrag) {
+                // DragDrop.instance.registerListeners(e, self.currentDocument, self.selfRef.current!);
+                let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
+                DragDrop.instance._onMouseMove(event);
+            } else if (!DragDrop.instance.isDragging() && e) {
+                self.initialDrag = true;
                 self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                 const receivedRect = e.data.dragRect as Rect;
                 const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                 (self.dragNode as TabNode)._setTabRect(rect);
-                
-                self.addTabWithDragAndDropIndirect("Release button click and click again to continue!\n(Drag to location)", {
-                    component: (self.dragNode as TabNode).getComponent(),
-                    config: (self.dragNode as TabNode).getConfig(),
-                    name: e.data.dragNode.name,
-                }, undefined);
 
-                // self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name);
-            } else {
-                DragDrop.instance._onMouseUp(e);
-                self.onCancelDrag(true);
+                let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
+                self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
             }
         }
     }
@@ -760,9 +763,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * Move a tab/tabset using drag and drop
      * @param node the tab or tabset to drag
      * @param dragText the text to show on the drag panel
+     * @param event
      */
-    moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string) {
-        this.dragStart(undefined, dragText, node, true, undefined, undefined);
+    moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string, event?: Event) {
+        this.dragStart(event, dragText, node, true, undefined, undefined);
     }
 
     /**
@@ -789,6 +793,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             if (this.dragDiv) {
                 // now it's been rendered into the dom it can be centered
                 this.dragDiv.style.visibility = "visible";
+                this.dragDiv.style.backgroundColor = "#969696c4";
                 const domRect = this.dragDiv.getBoundingClientRect();
                 const r = new Rect(0, 0, domRect?.width, domRect?.height);
                 r.centerInRect(this.state.rect);
@@ -1009,9 +1014,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
 
-        if ((clientRect.right < event.clientX || clientRect.left > event.clientX) && !this.notificationSent) {
+        if ((clientRect.right < event.clientX || clientRect.left > event.clientX) && !this.initialDrag) {
             this.notificationSent = true;
-            this.postMessage(event, dragRect);
+            this.postMessage(event);
         } else if (clientRect.right >= event.clientX || clientRect.left <= event.clientX) {
             this.notificationSent = false;
         }
@@ -1032,6 +1037,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         if (this.notificationSent) {
             if (this.dragNode && this.dropInfo) {
                 this.doAction(Actions.deleteTab(this.dragNode?.getId()));
+                this.postMessage(event as unknown as React.MouseEvent<Element>, true);
             }
             return;
         }
@@ -1062,6 +1068,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 this.doAction(Actions.moveNode(this.dragNode.getId(), this.dragNode, this.dropInfo.node.getId(), this.dropInfo.location, this.dropInfo.index));
             }
         }
+        
         this.setState({ showHiddenBorder: DockLocation.CENTER });
     };
 
@@ -1177,19 +1184,22 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal 
      * TODO Remove this, test purpose only*/
-    private postMessage(event: React.MouseEvent<Element, MouseEvent>, dragRect: DOMRect) {
+    private postMessage(event: React.MouseEvent<Element, MouseEvent>, drop = false) {
         if (!event.target) {
             console.log("Event missing target");
             return;
         }
         
         const node = this.dragNode as TabNode;
-
+        const posEvent = DragDrop.instance._getLocationEvent(event);
+        
         const data = {
-            type: "startDrag",
+            type: drop ? "drop" : "startDrag",
             dragNode: node?.toJson(),
             dragRect: node.getTabRect(),
             event: this.cloneMouseEvent(event),
+            clientX: posEvent.clientX,
+            clientY: posEvent.clientY
         };
 
         this._worker.port.postMessage(data);
@@ -1204,11 +1214,11 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         return { type, eventData, serializedTarget }; 
     }
 
-    deserializeMouseEvent(serializedEvent: any) { 
+    deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number) { 
         const { type, eventData, serializedTarget } = serializedEvent; 
 
         const target = new DOMParser().parseFromString(serializedTarget, "text/html");
-        const event = new MouseEvent(type, eventData);
+        const event = new MouseEvent(type, { ...eventData, clientX: clientX - DragDrop.instance._startX, clientY: clientY });
         Object.defineProperty(event, 'target', {value: target.body} ); 
 
         return event; 
