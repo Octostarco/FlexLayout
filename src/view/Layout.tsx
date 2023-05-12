@@ -369,6 +369,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 self.initialDrag = false;
             } if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
                 self.onCancelDrag(true);
+                DragDrop.instance._startX = 0;
             } else if (self.initialDrag) {
                 let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
                 DragDrop.instance._onMouseMove(event);
@@ -1215,10 +1216,20 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     }
 
     deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number) { 
-        const { type, eventData, serializedTarget } = serializedEvent; 
+        const { type, eventData, serializedTarget } = serializedEvent;
+        let finalX = 0;
+
+        const clientRect = this.selfRef.current!.getBoundingClientRect();
+        
+        if (clientX > 0 && (clientRect.right < clientX || clientRect.left > clientX)) {
+            finalX = clientX - DragDrop.instance._startX;
+        } else if (clientX <= 0 && (clientRect.right >= clientX || clientRect.left <= clientX)) {
+            DragDrop.instance._startX = clientRect.right;
+            finalX = clientRect.right - Math.abs(clientX);
+        }
 
         const target = new DOMParser().parseFromString(serializedTarget, "text/html");
-        const event = new MouseEvent(type, { ...eventData, clientX: clientX - DragDrop.instance._startX, clientY: clientY });
+        const event = new MouseEvent(type, { ...eventData, clientX: finalX, clientY: clientY });
         Object.defineProperty(event, 'target', {value: target.body} ); 
 
         return event; 
