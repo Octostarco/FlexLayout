@@ -363,25 +363,38 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const self = this;
 
         this._worker.port.onmessage = function (e: MessageEvent) {
-            if (DragDrop.instance.isDragging() && e.data.type === "drop") {
-                DragDrop.instance._onMouseUp(e);
-                DragDrop.instance._startX = 0;
-                self.initialDrag = false;
-            } if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
-                self.onCancelDrag(true);
-                DragDrop.instance._startX = 0;
-            } else if (self.initialDrag) {
-                let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
-                DragDrop.instance._onMouseMove(event);
-            } else if (!DragDrop.instance.isDragging() && e) {
-                self.initialDrag = true;
-                self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
-                const receivedRect = e.data.dragRect as Rect;
-                const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
-                (self.dragNode as TabNode)._setTabRect(rect);
-                
-                let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY);
-                self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
+            const windowLeftBound = window.screenX;
+            const windowRightBound = window.screenX + window.innerWidth;
+
+            e.data.clientX = e.data.eventPosition;
+
+            if (e.data.eventPosition > windowLeftBound && e.data.eventPosition < windowRightBound) {
+                if (DragDrop.instance.isDragging() && e.data.type === "drop") {
+                    DragDrop.instance._onMouseUp(e);
+                    DragDrop.instance._startX = 0;
+                    self.initialDrag = false;
+                } 
+                // cancel the root drag&drop
+                if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
+                    self.onCancelDrag(true);
+                    DragDrop.instance._startX = 0;
+                } 
+                // drag element is moved over drag zone, dragging has been initialized in step below
+                else if (self.initialDrag) {
+                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenHeight);
+                    DragDrop.instance._onMouseMove(event);
+                } 
+                // drag zone entered first time
+                else if (!DragDrop.instance.isDragging() && e) {
+                    self.initialDrag = true;
+                    self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
+                    const receivedRect = e.data.dragRect as Rect;
+                    const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
+                    (self.dragNode as TabNode)._setTabRect(rect);
+                    
+                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenHeight);
+                    self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
+                }
             }
         }
     }
@@ -1183,8 +1196,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         }
     }
 
-    /** @internal 
-     * TODO Remove this, test purpose only*/
+    /** @internal */
     private postMessage(event: React.MouseEvent<Element, MouseEvent>, drop = false) {
         if (!event.target) {
             console.log("Event missing target");
@@ -1199,8 +1211,11 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             dragNode: node?.toJson(),
             dragRect: node.getTabRect(),
             event: this.cloneMouseEvent(event),
+            eventPosition: posEvent.clientX + window.screenX,
             clientX: posEvent.clientX,
-            clientY: posEvent.clientY
+            clientY: posEvent.clientY,
+            originScreenX: window.screenX,
+            originScreenHeight: window.screen.height
         };
 
         this._worker.port.postMessage(data);
@@ -1215,17 +1230,20 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         return { type, eventData, serializedTarget }; 
     }
 
-    deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number) { 
+    deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number, originScreenX: number, originScreenHeight: number) { 
         const { type, eventData, serializedTarget } = serializedEvent;
         let finalX = 0;
+        // let finalY = 0;
 
-        const clientRect = this.selfRef.current!.getBoundingClientRect();
-        
-        if (clientX > 0 && (clientRect.right < clientX || clientRect.left > clientX)) {
+        if (window.screenX > originScreenX) {
             finalX = clientX - DragDrop.instance._startX;
-        } else if (clientX <= 0 && (clientRect.right >= clientX || clientRect.left <= clientX)) {
-            DragDrop.instance._startX = clientRect.right;
-            finalX = clientRect.right - Math.abs(clientX);
+        }
+        // DragDrop.instance._startX needs to be equal to start coordinates of drag&drop event
+        else {
+            if (!DragDrop.instance._startX) {
+                DragDrop.instance._startX = clientX;
+            }
+            finalX = clientX - window.screenX;
         }
 
         const target = new DOMParser().parseFromString(serializedTarget, "text/html");
