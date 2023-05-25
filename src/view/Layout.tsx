@@ -381,7 +381,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 } 
                 // drag element is moved over drag zone, dragging has been initialized in step below
                 else if (self.initialDrag) {
-                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenHeight);
+                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.originScreenHeight);
                     DragDrop.instance._onMouseMove(event);
                 } 
                 // drag zone entered first time
@@ -392,7 +392,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
                     (self.dragNode as TabNode)._setTabRect(rect);
                     
-                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenHeight);
+                    let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.originScreenHeight);
                     self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
                 }
             }
@@ -1215,6 +1215,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             clientX: posEvent.clientX,
             clientY: posEvent.clientY,
             originScreenX: window.screenX,
+            originScreenY: window.screenY,
             originScreenHeight: window.screen.height
         };
 
@@ -1230,12 +1231,27 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         return { type, eventData, serializedTarget }; 
     }
 
-    deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number, originScreenX: number, originScreenHeight: number) { 
+    deserializeMouseEvent(serializedEvent: any, clientX: number, clientY: number, originScreenX: number, originScreenY: number, originScreenHeight: number) { 
         const { type, eventData, serializedTarget } = serializedEvent;
         let finalX = 0;
-        // let finalY = 0;
+        let finalY = clientY;
+
+        if (window.screenY < originScreenY) {
+            if (!DragDrop.instance._startY) {
+                DragDrop.instance._startY = clientY;
+            }
+            finalY = originScreenY - window.screenY + clientY;
+        } else if (window.screenY > originScreenY) {
+            if (!DragDrop.instance._startY) {
+                DragDrop.instance._startY = clientY;
+            }
+            finalY = originScreenY - window.screenY + clientY;
+        }
 
         if (window.screenX > originScreenX) {
+            if (!DragDrop.instance._startX) {
+                DragDrop.instance._startX = clientX;
+            }
             finalX = clientX - DragDrop.instance._startX;
         }
         // DragDrop.instance._startX needs to be equal to start coordinates of drag&drop event
@@ -1247,7 +1263,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         }
 
         const target = new DOMParser().parseFromString(serializedTarget, "text/html");
-        const event = new MouseEvent(type, { ...eventData, clientX: finalX, clientY: clientY });
+        const event = new MouseEvent(type, { ...eventData, clientX: finalX, clientY: finalY });
         Object.defineProperty(event, 'target', {value: target.body} ); 
 
         return event; 
