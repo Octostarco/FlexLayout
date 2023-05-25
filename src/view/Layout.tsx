@@ -396,6 +396,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     let event = self.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.originScreenHeight);
                     self.moveTabWithDragAndDrop(self.dragNode as TabNode, e.data.dragNode.name, event);
                 }
+            } else if (DragDrop.instance.isDragging() && e.data.type === "drop"){
+                DragDrop.instance._onMouseUp(e);
+                DragDrop.instance._startX = 0;
+                self.initialDrag = false;
             }
         }
     }
@@ -1049,12 +1053,12 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         DragDrop.instance.hideGlass();
 
         // Reset Sending Browser Instance info because it is already sent to second browser
-        if (this.notificationSent) {
-            if (this.dragNode && this.dropInfo) {
-                this.doAction(Actions.deleteTab(this.dragNode?.getId()));
-                this.postMessage(event as unknown as React.MouseEvent<Element>, true);
-            }
+        if (this.notificationSent && this.dragNode && this.dropInfo) {
+            this.doAction(Actions.deleteTab(this.dragNode?.getId()));
+            this.postMessage(event as unknown as React.MouseEvent<Element>, true);
             return;
+        } else if (!this.notificationSent) {
+            this.postMessage(undefined, true);
         }
         
         if (this.dropInfo) {
@@ -1198,8 +1202,18 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     }
 
     /** @internal */
-    private postMessage(event: React.MouseEvent<Element, MouseEvent>, drop = false) {
-        if (!event.target) {
+    private postMessage(event?: React.MouseEvent<Element, MouseEvent>, drop = false) {
+        // Cancel all windows
+        if (!event && drop) {
+            const data = {
+                type: "drop"
+            };
+
+            this._worker.port.postMessage(data);
+            return;
+        }
+        
+        if (!event?.target) {
             console.log("Event missing target");
             return;
         }
