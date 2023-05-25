@@ -386,6 +386,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 } 
                 // drag zone entered first time
                 else if (!DragDrop.instance.isDragging() && e) {
+                    DragDrop.instance._startX = 0;
                     self.initialDrag = true;
                     self.dragNode = TabNode._fromJson(e.data.dragNode, self.props.model, false);
                     const receivedRect = e.data.dragRect as Rect;
