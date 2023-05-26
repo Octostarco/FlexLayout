@@ -26,16 +26,17 @@ import { TabStorage } from "./TabStorage";
 import { Utils } from "./Utils";
 import "prismjs/themes/prism-coy.css";
 
-var fields = ["Name", "Field1", "Field2", "Field3", "Field4", "Field5"];
+const fields = ["Name", "Field1", "Field2", "Field3", "Field4", "Field5"];
 
 const ContextExample = React.createContext("");
 
-class App extends React.Component<any, { layoutFile: string | null; model: Model | null; json?: string; adding: boolean; fontSize: string; realtimeResize: boolean }> {
+class App extends React.Component<any, { layoutFile: string | null; model: Model | null; json?: string; adding: boolean; fontSize: string; realtimeResize: boolean, window?: WindowProxy | null; }> {
     loadingLayoutName?: string;
     nextGridIndex: number = 1;
     showingPopupMenu: boolean = false;
     htmlTimer?: any = null;
     layoutRef?: React.RefObject<Layout>;
+    connectedApps: string[] = [];
 
     constructor(props: any) {
         super(props);
@@ -75,7 +76,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     };
 
     save() {
-        var jsonStr = JSON.stringify(this.state.model!.toJson(), null, "\t");
+        const jsonStr = JSON.stringify(this.state.model!.toJson(), null, "\t");
         localStorage.setItem(this.state.layoutFile!, jsonStr);
     }
 
@@ -87,7 +88,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         this.loadingLayoutName = layoutName;
         let loaded = false;
         if (!reload) {
-            var json = localStorage.getItem(layoutName);
+            const json = localStorage.getItem(layoutName);
             if (json != null) {
                 this.load(json);
                 loaded = true;
@@ -308,7 +309,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         //node.setEventListener("visibility", function(p){console.log("visibility", node);});
         //node.setEventListener("close", function(p){console.log("close", node);});
 
-        var component = node.getComponent();
+        const component = node.getComponent();
 
         if (component === "json") {
             return <pre style={{ tabSize: "20px" }} dangerouslySetInnerHTML={{ __html: this.state.json! }} />;
@@ -320,7 +321,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
 
             return <SimpleTable fields={fields} onClick={this.onTableClick.bind(this, node)} data={node.getExtraData().data} />;
         } else if (component === "sub") {
-            var model = node.getExtraData().model;
+            let model = node.getExtraData().model;
             if (model == null) {
                 node.getExtraData().model = Model.fromJson(node.getConfig().model);
                 model = node.getExtraData().model;
@@ -383,7 +384,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     };
 
     onSelectLayout = (event: React.FormEvent) => {
-        var target = event.target as HTMLSelectElement;
+        const target = event.target as HTMLSelectElement;
         this.loadLayout(target.value);
     };
 
@@ -392,7 +393,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     };
 
     onThemeChange = (event: React.FormEvent) => {
-        var target = event.target as HTMLSelectElement;
+        const target = event.target as HTMLSelectElement;
         let flexlayout_stylesheet: any = window.document.getElementById("flexlayout-stylesheet");
         let index = flexlayout_stylesheet.href.lastIndexOf("/");
         let newAddress = flexlayout_stylesheet.href.substr(0, index);
@@ -403,7 +404,7 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     };
 
     onSizeChange = (event: React.FormEvent) => {
-        var target = event.target as HTMLSelectElement;
+        const target = event.target as HTMLSelectElement;
         this.setState({ fontSize: target.value });
     };
 
@@ -555,6 +556,11 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
                             >
                                 Add Indirect
                             </button>
+                            <button className="toolbar_control"
+                                    disabled={this.state.adding}
+                                    style={{ marginLeft: 5 }}
+                                    title="Add using Layout.addTabWithDragAndDropIndirect"
+                                    onClick={this.onOpenNewWindowClick.bind(this)}>New Window</button>
                         </div>
                         <div className="contents">{contents}</div>
                     </div>
@@ -563,13 +569,97 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
         );
     }
 
+    onOpenNewWindowClick(event: React.MouseEvent) {
+        const data = this.getWindowData();
+
+        let
+            dock   = "right",
+            size   = "700",
+            height, left, top, width;
+
+        switch (dock) {
+            case 'bottom':
+                height = size;
+                left   = data.screenLeft;
+                top    = data.outerHeight + data.screenTop - 52;
+                width  = data.outerWidth;
+                break;
+            case 'left':
+                height = data.outerHeight - 78;
+                left   = data.screenLeft  - 1;
+                top    = data.screenTop   + 28;
+                width  = size;
+                break;
+            case 'right':
+                height = data.outerHeight;
+                left   = data.outerWidth  + data.screenLeft;
+                top    = data.screenTop;
+                width  = size;
+                break;
+            case 'top':
+                height = size;
+                left   = data.screenLeft;
+                top    = data.screenTop - 1 + 28;
+                width  = data.outerWidth;
+                break;
+        }
+
+        this.windowOpen({
+            url           : '../demo/index.html',
+            windowFeatures: `height=${height}, left=${left}, top=${top}, width=${width}, popup="true"`,
+            windowName    : "Docked Window"
+        });
+
+        this.connectedApps.push("Docked Window");
+    }
+
+    /**
+     * window.screen is not spreadable
+     * @returns {Object}
+     */
+    getWindowData() {
+        let win    = window,
+            screen = win.screen;
+
+        return {
+            innerHeight: win.innerHeight,
+            innerWidth : win.innerWidth,
+            outerHeight: win.outerHeight,
+            outerWidth : win.outerWidth,
+            screen: {
+                availHeight: screen.availHeight,
+                // availLeft  : screen.availLeft,
+                // availTop   : screen.availTop,
+                availWidth : screen.availWidth,
+                colorDepth : screen.colorDepth,
+                height     : screen.height,
+                orientation: {angle: screen.orientation?.angle, type: screen.orientation?.type},
+                pixelDepth : screen.pixelDepth,
+                width      : screen.width
+            },
+            screenLeft: win.screenLeft,
+            screenTop : win.screenTop,
+        };
+    }
+
+    /**
+     * Open a new popup window
+     * @param {Object} data
+     * @param {String} data.url
+     * @param {String} data.windowFeatures
+     * @param {String} data.windowName
+     */
+    windowOpen(data: { url: any; windowFeatures: any; windowName: any; }) {
+        this.setState({ window: window.open(data.url, data.windowName, data.windowFeatures) });
+    }
+
     makeFakeData() {
-        var data = [];
-        var r = Math.random() * 50;
-        for (var i = 0; i < r; i++) {
-            var rec: { [key: string]: any } = {};
+        const data = [];
+        const r = Math.random() * 50;
+        for (let i = 0; i < r; i++) {
+            const rec: { [key: string]: any } = {};
             rec.Name = this.randomString(5, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-            for (var j = 1; j < fields.length; j++) {
+            for (let j = 1; j < fields.length; j++) {
                 rec[fields[j]] = (1.5 + Math.random() * 2).toFixed(2);
             }
             data.push(rec);
@@ -578,8 +668,8 @@ class App extends React.Component<any, { layoutFile: string | null; model: Model
     }
 
     randomString(len: number, chars: string) {
-        var a = [];
-        for (var i = 0; i < len; i++) {
+        const a = [];
+        for (let i = 0; i < len; i++) {
             a.push(chars[Math.floor(Math.random() * chars.length)]);
         }
 
@@ -594,21 +684,21 @@ class SimpleTable extends React.Component<{ fields: any; data: any; onClick: any
 
     render() {
         // if (Math.random()>0.8) throw Error("oppps I crashed");
-        var headercells = this.props.fields.map(function (field: any) {
+        const headercells = this.props.fields.map(function (field: any) {
             return <th key={field}>{field}</th>;
         });
 
-        var rows = [];
-        for (var i = 0; i < this.props.data.length; i++) {
-            var row = this.props.fields.map((field: any) => <td key={field}>{this.props.data[i][field]}</td>);
+        const rows = [];
+        for (let i = 0; i < this.props.data.length; i++) {
+            const row = this.props.fields.map((field: any) => <td key={field}>{this.props.data[i][field]}</td>);
             rows.push(<tr key={i}>{row}</tr>);
         }
 
         return (
             <table className="simple_table" onClick={this.props.onClick}>
                 <tbody>
-                    <tr>{headercells}</tr>
-                    {rows}
+                <tr>{headercells}</tr>
+                {rows}
                 </tbody>
             </table>
         );

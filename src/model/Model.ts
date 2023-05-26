@@ -267,11 +267,20 @@ export class Model {
                 break;
             }
             case Actions.MOVE_NODE: {
-                const fromNode = this._idMap[action.data.fromNode] as Node & IDraggable;
-                if (fromNode instanceof TabNode || fromNode instanceof TabSetNode) {
+                const fromNodeById = this._idMap[action.data.fromNodeId] as Node & IDraggable;
+
+                if (fromNodeById instanceof TabNode || fromNodeById instanceof TabSetNode) {
                     const toNode = this._idMap[action.data.toNode] as Node & IDropTarget;
                     if (toNode instanceof TabSetNode || toNode instanceof BorderNode || toNode instanceof RowNode) {
-                        toNode.drop(fromNode, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
+                        toNode.drop(fromNodeById, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
+                    }
+                } else {
+                    const fromNode = action.data.fromNode as Node & IDraggable;
+                    if (fromNode instanceof TabNode || fromNode instanceof TabSetNode) {
+                        const toNode = this._idMap[action.data.toNode] as Node & IDropTarget;
+                        if (toNode instanceof TabSetNode || toNode instanceof BorderNode || toNode instanceof RowNode) {
+                            toNode.drop(fromNode, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
+                        }
                     }
                 }
                 break;
