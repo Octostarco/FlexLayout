@@ -1,6 +1,10 @@
 import * as React from "react";
 export declare class DragDrop {
     static instance: DragDrop;
+    get startX(): number;
+    set startX(value: number);
+    get startY(): number;
+    set startY(value: number);
     addGlass(fCancel: ((wasDragging: boolean) => void) | undefined): void;
     resizeGlass(): void;
     hideGlass(): void;

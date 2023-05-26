@@ -120,7 +120,19 @@ export interface ICustomDropDestination {
  * A React component that hosts a multi-tabbed layout
  */
 export declare class Layout extends React.Component<ILayoutProps, ILayoutState> {
+    private _worker?;
+    private draggingOutOfWindowBounds;
+    private externalDragStarted;
     constructor(props: ILayoutProps);
+    /**
+     * Create instance of Shared Worker
+     */
+    instantiateSharedWorkerInstance(): void;
+    /**
+     * Handles incomming shared worker messages
+     * @param { MessageEvent } e
+     */
+    handleWorkerMessage(e: MessageEvent): void;
     /**
      * Adds a new tab to the given tabset
      * @param tabsetId the id of the tabset where the new tab will be added
@@ -143,8 +155,9 @@ export declare class Layout extends React.Component<ILayoutProps, ILayoutState> 
      * Move a tab/tabset using drag and drop
      * @param node the tab or tabset to drag
      * @param dragText the text to show on the drag panel
+     * @param event
      */
-    moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string): void;
+    moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string, event?: Event): void;
     /**
      * Adds a new tab by dragging a labeled panel to the drop location, dragging starts when you
      * mouse down on the panel
@@ -154,4 +167,26 @@ export declare class Layout extends React.Component<ILayoutProps, ILayoutState> 
      * @param onDrop a callback to call when the drag is complete (node and event will be undefined if the drag was cancelled)
      */
     addTabWithDragAndDropIndirect(dragText: string | undefined, json: IJsonTabNode, onDrop?: (node?: Node, event?: Event) => void): void;
+    /**
+     * Prepares the message and sends it over shared worker
+     * @param event
+     * @param isDropEvent
+     */
+    private prepareAndPostSharedWorkerMessage;
+    /**
+     * Clones the mouse event so it can be sent over shared worker instance
+     * @param event
+     * @returns
+     */
+    private cloneMouseEvent;
+    /**
+     * Deserializes shared worker message, calculates width and height for new mouse event and instantiates mouse event
+     * @param serializedEvent
+     * @param clientX
+     * @param clientY
+     * @param originScreenX
+     * @param originScreenY
+     * @returns { MouseEvent }
+     */
+    private deserializeMouseEvent;
 }
