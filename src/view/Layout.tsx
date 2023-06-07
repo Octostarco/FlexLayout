@@ -410,8 +410,13 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 let event = this.deserializeMouseEvent(e.data.event, e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY);
                 this.moveTabWithDragAndDrop(this.dragNode as TabNode, e.data.dragNode.name, event);
             }
-        } else if (DragDrop.instance.isDragging() && e.data.type === "drop"){
+        } else if (DragDrop.instance.isDragging() && e.data.type === "drop") { // if dragging through one window to another without drop, and dragging back to first window and drop 
             DragDrop.instance._onMouseUp(e);
+            
+            // Delete dragging node if dropped in another window
+            if (this.dragNode) {
+                this.doAction(Actions.deleteTab(this.dragNode?.getId()));   
+            }
             DragDrop.instance.startX = 0;
             this.externalDragStarted = false;
         }
