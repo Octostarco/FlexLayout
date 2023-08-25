@@ -16,4 +16,32 @@ _self.onconnect = function (e) {
     port.start(); // Required when using addEventListener. Otherwise called implicitly by onmessage setter.
 };
 
+export enum WorkerMessageType {
+    Ping,
+    PositivePingResponse,
+    NegativePingResponse,
+    InitDrag,
+    CoordinatesUpdate,
+    Drop,
+}
+
 export {};
+
+export class PingMessage {
+    id?: string;
+    messageType?: WorkerMessageType;
+    clientX?: number;
+    clientY?: number;
+
+    // constructor(id: string, messageType: WorkerMessageType, clientX: number, clientY: number)
+}
+
+export class DragMessage extends PingMessage {
+    messageType: WorkerMessageType = WorkerMessageType.InitDrag;
+    data: unknown;
+}
+
+export class DragMessageUpdate extends PingMessage {
+    messageType: WorkerMessageType = WorkerMessageType.CoordinatesUpdate;
+    coordinates: unknown;
+}
