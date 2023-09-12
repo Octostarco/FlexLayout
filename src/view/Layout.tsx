@@ -28,8 +28,8 @@ import { IJsonTabNode } from "../model/IJsonModel";
 import { Orientation } from "../Orientation";
 import { CloseIcon, MaximizeIcon, OverflowIcon, PopoutIcon, RestoreIcon } from "./Icons";
 import { TabButtonStamp } from "./TabButtonStamp";
-import { v4 as uuidv4 } from 'uuid';
-import { PingMessage, DragMessage, DragMessageUpdate, WorkerMessageType } from "../SharedWorker"
+import { v4 as uuidv4 } from "uuid";
+import { PingMessage, WorkerMessageType } from "../SharedWorker";
 
 export type CustomDragCallback = (dragging: TabNode | IJsonTabNode, over: TabNode, x: number, y: number, location: DockLocation) => void;
 export type DragRectRenderCallback = (content: React.ReactElement | undefined, node?: Node, json?: IJsonTabNode) => React.ReactElement | undefined;
@@ -39,7 +39,7 @@ export type ShowOverflowMenuCallback = (
     node: TabSetNode | BorderNode,
     mouseEvent: React.MouseEvent<HTMLElement, MouseEvent>,
     items: { index: number; node: TabNode }[],
-    onSelect: (item: { index: number; node: TabNode }) => void,
+    onSelect: (item: { index: number; node: TabNode }) => void
 ) => void;
 export type TabSetPlaceHolderCallback = (node: TabSetNode) => React.ReactNode;
 export type IconFactory = (node: TabNode) => React.ReactNode;
@@ -56,33 +56,44 @@ export interface ILayoutProps {
     onAction?: (action: Action) => Action | undefined;
     onRenderTab?: (
         node: TabNode,
-        renderValues: ITabRenderValues, // change the values in this object as required
+        renderValues: ITabRenderValues // change the values in this object as required
     ) => void;
     onRenderTabSet?: (
         tabSetNode: TabSetNode | BorderNode,
-        renderValues: ITabSetRenderValues, // change the values in this object as required
+        renderValues: ITabSetRenderValues // change the values in this object as required
     ) => void;
     onModelChange?: (model: Model, action: Action) => void;
-    onExternalDrag?: (event: React.DragEvent<HTMLDivElement>) => undefined | {
-        dragText: string,
-        json: any,
-        onDrop?: (node?: Node, event?: Event) => void
-    };
+    onExternalDrag?: (event: React.DragEvent<HTMLDivElement>) =>
+        | undefined
+        | {
+              dragText: string;
+              json: any;
+              onDrop?: (node?: Node, event?: Event) => void;
+          };
     classNameMapper?: (defaultClassName: string) => string;
     i18nMapper?: (id: I18nLabel, param?: string) => string | undefined;
     supportsPopout?: boolean | undefined;
     popoutURL?: string | undefined;
     realtimeResize?: boolean | undefined;
-    onTabDrag?: (dragging: TabNode | IJsonTabNode, over: TabNode, x: number, y: number, location: DockLocation, refresh: () => void) => undefined | {
+    onTabDrag?: (
+        dragging: TabNode | IJsonTabNode,
+        over: TabNode,
         x: number,
         y: number,
-        width: number,
-        height: number,
-        callback: CustomDragCallback,
-        // Called once when `callback` is not going to be called anymore (user canceled the drag, moved mouse and you returned a different callback, etc)
-        invalidated?: () => void,
-        cursor?: string | undefined
-    };
+        location: DockLocation,
+        refresh: () => void
+    ) =>
+        | undefined
+        | {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+              callback: CustomDragCallback;
+              // Called once when `callback` is not going to be called anymore (user canceled the drag, moved mouse and you returned a different callback, etc)
+              invalidated?: () => void;
+              cursor?: string | undefined;
+          };
     onRenderDragRect?: DragRectRenderCallback;
     onRenderFloatingTabPlaceholder?: FloatingTabPlaceholderRenderCallback;
     onContextMenu?: NodeMouseEvent;
@@ -129,12 +140,12 @@ export interface ILayoutState {
 }
 
 export interface IIcons {
-    close?: (React.ReactNode | ((tabNode: TabNode) => React.ReactNode));
-    closeTabset?: (React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode));
-    popout?: (React.ReactNode | ((tabNode: TabNode) => React.ReactNode));
-    maximize?: (React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode));
-    restore?: (React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode));
-    more?: (React.ReactNode | ((tabSetNode: (TabSetNode | BorderNode), hiddenTabs: { node: TabNode; index: number }[]) => React.ReactNode));
+    close?: React.ReactNode | ((tabNode: TabNode) => React.ReactNode);
+    closeTabset?: React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode);
+    popout?: React.ReactNode | ((tabNode: TabNode) => React.ReactNode);
+    maximize?: React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode);
+    restore?: React.ReactNode | ((tabSetNode: TabSetNode) => React.ReactNode);
+    more?: React.ReactNode | ((tabSetNode: TabSetNode | BorderNode, hiddenTabs: { node: TabNode; index: number }[]) => React.ReactNode);
 }
 
 const defaultIcons = {
@@ -178,14 +189,8 @@ export interface ILayoutCallbacks {
         onClick?: (event: Event) => void,
         onDoubleClick?: (event: Event) => void
     ): void;
-    customizeTab(
-        tabNode: TabNode,
-        renderValues: ITabRenderValues,
-    ): void;
-    customizeTabSet(
-        tabSetNode: TabSetNode | BorderNode,
-        renderValues: ITabSetRenderValues,
-    ): void;
+    customizeTab(tabNode: TabNode, renderValues: ITabRenderValues): void;
+    customizeTabSet(tabSetNode: TabSetNode | BorderNode, renderValues: ITabSetRenderValues): void;
     styleFont: (style: Record<string, string>) => Record<string, string>;
     setEditingTab(tabNode?: TabNode): void;
     getEditingTab(): TabNode | undefined;
@@ -213,7 +218,6 @@ const defaultSupportsPopout: boolean = isDesktop && !isIEorEdge;
  * A React component that hosts a multi-tabbed layout
  */
 export class Layout extends React.Component<ILayoutProps, ILayoutState> {
-
     /** @internal */
     private selfRef: React.RefObject<HTMLDivElement>;
     /** @internal */
@@ -365,23 +369,22 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         // need to re-render if size changes
         this.currentDocument = (this.selfRef.current as HTMLDivElement).ownerDocument;
         this.currentWindow = this.currentDocument.defaultView!;
-        this.resizeObserver = new ResizeObserver(entries => {
+        this.resizeObserver = new ResizeObserver((entries) => {
             this.updateRect(entries[0].contentRect);
         });
         this.resizeObserver.observe(this.selfRef.current!);
 
         // Bind to shared worker messages
         if (this._worker) {
-            this._worker.port.onmessage = this.handleWorkerMessage.bind(this)
+            this._worker.port.onmessage = this.handleWorkerMessage.bind(this);
         }
-
     }
 
     private listenerLayoutId?: string;
 
     /**
      * Handles incomming shared worker messages
-     * @param { MessageEvent } e 
+     * @param { MessageEvent } e
      */
     handleWorkerMessage(e: MessageEvent) {
         const windowLeftBound = window.screenX;
@@ -398,7 +401,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             return;
         }
 
-
         if (e.data.messageType === WorkerMessageType.PositivePingResponse) {
             this.listenerLayoutId = (e.data as PingMessage).id;
             return;
@@ -410,7 +412,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             return;
         }
 
+        console.log("Listening Drop Event, Message Type: ", messageData.messageType);
         if (messageData.clientX && messageData.clientY && messageData.clientX > windowLeftBound && messageData.clientX < windowRightBound) {
+            console.log("Listening Drop Event Inside, Message Type: ", messageData.messageType);
             if (messageData.messageType === WorkerMessageType.Ping) {
                 this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
             } else if (messageData.messageType === WorkerMessageType.InitDrag) {
@@ -433,11 +437,16 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 DragDrop.instance._onMouseUp(e);
                 DragDrop.instance.startX = 0;
                 this.externalDragStarted = false;
+            } else if (!DragDrop.instance.isDragging() && messageData.messageType === WorkerMessageType.Drop) {
+                this.onCancelDrag(true);
+                DragDrop.instance.startX = 0;
             }
         }
         // when mouse coordinates are out of window bounds we react with negative ping response
         else if (
-            (messageData.messageType === WorkerMessageType.InitDrag || messageData.messageType === WorkerMessageType.CoordinatesUpdate) /*&& messageData.clientX && messageData.clientY && (messageData.clientX < windowLeftBound || messageData.clientX > windowRightBound)*/
+            messageData.messageType === WorkerMessageType.InitDrag ||
+            messageData.messageType ===
+                WorkerMessageType.CoordinatesUpdate /*&& messageData.clientX && messageData.clientY && (messageData.clientX < windowLeftBound || messageData.clientX > windowRightBound)*/
         ) {
             this._worker?.port.postMessage({ messageType: WorkerMessageType.NegativePingResponse, id: this.id } as PingMessage);
             this.listenerLayoutId = undefined;
@@ -451,12 +460,12 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         //         DragDrop.instance._onMouseUp(e);
         //         DragDrop.instance.startX = 0;
         //         this.externalDragStarted = false;
-        //     } 
+        //     }
         //     // cancel the root drag&drop
         //     if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
         //         this.onCancelDrag(true);
         //         DragDrop.instance.startX = 0;
-        //     } 
+        //     }
         //     // drag element is moved over drag zone, dragging has been initialized in step below
         //     else if (this.externalDragStarted) {
         //         let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.event);
@@ -464,7 +473,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         //         if (event) {
         //             DragDrop.instance._onMouseMove(event);
         //         }
-        //     } 
+        //     }
         //     // drag zone entered first time
         //     else if (!DragDrop.instance.isDragging() && e) {
         //         DragDrop.instance.startX = 0;
@@ -482,6 +491,96 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         //     DragDrop.instance.startX = 0;
         //     this.externalDragStarted = false;
         // }
+    }
+
+    handleWorkerMessage2(e: MessageEvent) {
+        const windowLeftBound = window.screenX;
+        const windowRightBound = window.screenX + window.innerWidth;
+
+        let messageData = e.data as PingMessage;
+
+        if (!messageData || !messageData.id) {
+            return;
+        }
+
+        if (messageData.id === this.id) {
+            // Ignore the message if the id is the same as the current component id
+            return;
+        }
+
+        if (e.data.messageType === WorkerMessageType.PositivePingResponse) {
+            this.listenerLayoutId = (e.data as PingMessage).id;
+            return;
+        }
+
+        if (e.data.messageType === WorkerMessageType.NegativePingResponse) {
+            this.listenerLayoutId = undefined;
+            this.dragInitialised = false;
+            return;
+        }
+
+        if (messageData.clientX && messageData.clientY && messageData.clientX > windowLeftBound && messageData.clientX < windowRightBound) {
+            switch (messageData.messageType) {
+                case WorkerMessageType.Ping:
+                    this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
+                    break;
+                case WorkerMessageType.InitDrag:
+                    this.startRemoteDrag(e.data);
+                    break;
+                case WorkerMessageType.CoordinatesUpdate:
+                    this.updateRemoteDragPosition(messageData.clientX, messageData.clientY);
+                    break;
+                case WorkerMessageType.Drop:
+                    this.handleRemoteDrop(e.data);
+                    break;
+            }
+        } else {
+            if (messageData.messageType && [WorkerMessageType.InitDrag, WorkerMessageType.CoordinatesUpdate].includes(messageData.messageType)) {
+                this._worker?.port.postMessage({ messageType: WorkerMessageType.NegativePingResponse, id: this.id } as PingMessage);
+                this.listenerLayoutId = undefined;
+                this.dragInitialised = false;
+            }
+        }
+
+        // If DragDrop instance is dragging and the message is a drop
+        if (DragDrop.instance.isDragging() && messageData.messageType === WorkerMessageType.Drop) {
+            DragDrop.instance._onMouseUp(e);
+            DragDrop.instance.startX = 0;
+            this.externalDragStarted = false;
+        }
+    }
+
+    private startRemoteDrag(data: { dragNode: { name: string | undefined }; dragRect: Rect; clientX: number; clientY: number; originScreenX: number; originScreenY: number; event: any }) {
+        DragDrop.instance.startX = 0;
+        this.externalDragStarted = true;
+        this.dragNode = TabNode._fromJson(data.dragNode, this.props.model, false);
+        const receivedRect = data.dragRect as Rect;
+        const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
+        (this.dragNode as TabNode)._setTabRect(rect);
+
+        let event = this.deserializeMouseEvent(data.clientX, data.clientY, data.originScreenX, data.originScreenY, data.event);
+        this.moveTabWithDragAndDrop(this.dragNode as TabNode, data.dragNode.name, event);
+    }
+
+    private updateRemoteDragPosition(x: number, y: number) {
+        if (this.externalDragStarted && DragDrop.instance) {
+            DragDrop.instance._onMouseMove({ clientX: x, clientY: y } as MouseEvent); // here I'm assuming _onMouseMove accepts a MouseEvent
+        }
+    }
+
+    private handleRemoteDrop(data: Event) {
+        // Still Dragging
+        if (DragDrop.instance.isDragging()) {
+            DragDrop.instance._onMouseUp(data);
+            DragDrop.instance.startX = 0;
+            this.externalDragStarted = false;
+        }
+
+        // cancel the root drag&drop
+        if (!DragDrop.instance.isDragging()) {
+            this.onCancelDrag(true);
+            DragDrop.instance.startX = 0;
+        }
     }
 
     /** @internal */
@@ -562,7 +661,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     }
 
     /** @internal */
-    onTabDrag(...args: Parameters<Required<ILayoutProps>['onTabDrag']>) {
+    onTabDrag(...args: Parameters<Required<ILayoutProps>["onTabDrag"]>) {
         return this.props.onTabDrag?.(...args);
     }
 
@@ -573,7 +672,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /** @internal */
     componentWillUnmount() {
-        this.resizeObserver?.unobserve(this.selfRef.current!)
+        this.resizeObserver?.unobserve(this.selfRef.current!);
     }
 
     /** @internal */
@@ -608,7 +707,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const metrics: ILayoutMetrics = {
             headerBarSize: this.state.calculatedHeaderBarSize,
             tabBarSize: this.state.calculatedTabBarSize,
-            borderBarSize: this.state.calculatedBorderBarSize
+            borderBarSize: this.state.calculatedBorderBarSize,
         };
         this.props.model._setShowHiddenBorder(this.state.showHiddenBorder);
 
@@ -644,10 +743,34 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             const offset = this.edgeRectLength / 2;
             const className = this.getClassName(CLASSES.FLEXLAYOUT__EDGE_RECT);
             const radius = 50;
-            edges.push(<div key="North" style={{ top: r.y, left: r.x + r.width / 2 - offset, width: length, height: width, borderBottomLeftRadius: radius, borderBottomRightRadius: radius }} className={className}></div>)
-            edges.push(<div key="West" style={{ top: r.y + r.height / 2 - offset, left: r.x, width: width, height: length, borderTopRightRadius: radius, borderBottomRightRadius: radius }} className={className}></div>)
-            edges.push(<div key="South" style={{ top: r.y + r.height - width, left: r.x + r.width / 2 - offset, width: length, height: width, borderTopLeftRadius: radius, borderTopRightRadius: radius }} className={className}></div>)
-            edges.push(<div key="East" style={{ top: r.y + r.height / 2 - offset, left: r.x + r.width - width, width: width, height: length, borderTopLeftRadius: radius, borderBottomLeftRadius: radius }} className={className}></div>)
+            edges.push(
+                <div
+                    key="North"
+                    style={{ top: r.y, left: r.x + r.width / 2 - offset, width: length, height: width, borderBottomLeftRadius: radius, borderBottomRightRadius: radius }}
+                    className={className}
+                ></div>
+            );
+            edges.push(
+                <div
+                    key="West"
+                    style={{ top: r.y + r.height / 2 - offset, left: r.x, width: width, height: length, borderTopRightRadius: radius, borderBottomRightRadius: radius }}
+                    className={className}
+                ></div>
+            );
+            edges.push(
+                <div
+                    key="South"
+                    style={{ top: r.y + r.height - width, left: r.x + r.width / 2 - offset, width: length, height: width, borderTopLeftRadius: radius, borderTopRightRadius: radius }}
+                    className={className}
+                ></div>
+            );
+            edges.push(
+                <div
+                    key="East"
+                    style={{ top: r.y + r.height / 2 - offset, left: r.x + r.width - width, width: width, height: length, borderTopLeftRadius: radius, borderBottomLeftRadius: radius }}
+                    className={className}
+                ></div>
+            );
         }
 
         // this.layoutTime = (Date.now() - this.start);
@@ -742,19 +865,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                                     <FloatingWindowTab layout={this} node={child} factory={this.props.factory} />
                                 </FloatingWindow>
                             );
-                            tabComponents[child.getId()] = <TabFloating key={child.getId()}
-                                layout={this}
-                                path={path}
-                                node={child}
-                                selected={i === border.getSelected()
-                                } />;
+                            tabComponents[child.getId()] = <TabFloating key={child.getId()} layout={this} path={path} node={child} selected={i === border.getSelected()} />;
                         } else {
-                            tabComponents[child.getId()] = <Tab key={child.getId()}
-                                layout={this}
-                                path={path}
-                                node={child}
-                                selected={i === border.getSelected()}
-                                factory={this.props.factory} />;
+                            tabComponents[child.getId()] = <Tab key={child.getId()} layout={this} path={path} node={child} selected={i === border.getSelected()} factory={this.props.factory} />;
                         }
                     }
                     i++;
@@ -764,7 +877,14 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     }
 
     /** @internal */
-    renderChildren(path: string, node: RowNode | TabSetNode, tabSetComponents: React.ReactNode[], tabComponents: Record<string, React.ReactNode>, floatingWindows: React.ReactNode[], splitterComponents: React.ReactNode[]) {
+    renderChildren(
+        path: string,
+        node: RowNode | TabSetNode,
+        tabSetComponents: React.ReactNode[],
+        tabComponents: Record<string, React.ReactNode>,
+        floatingWindows: React.ReactNode[],
+        splitterComponents: React.ReactNode[]
+    ) {
         const drawChildren = node._getDrawChildren();
         let splitterCount = 0;
         let tabCount = 0;
@@ -772,14 +892,16 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         for (const child of drawChildren!) {
             if (child instanceof SplitterNode) {
-                const newPath = path + "/s" + (splitterCount++);
+                const newPath = path + "/s" + splitterCount++;
                 splitterComponents.push(<Splitter key={child.getId()} layout={this} path={newPath} node={child} />);
             } else if (child instanceof TabSetNode) {
-                const newPath = path + "/ts" + (rowCount++);
-                tabSetComponents.push(<TabSet key={child.getId()} layout={this} path={newPath} node={child} iconFactory={this.props.iconFactory} titleFactory={this.props.titleFactory} icons={this.icons} />);
+                const newPath = path + "/ts" + rowCount++;
+                tabSetComponents.push(
+                    <TabSet key={child.getId()} layout={this} path={newPath} node={child} iconFactory={this.props.iconFactory} titleFactory={this.props.titleFactory} icons={this.icons} />
+                );
                 this.renderChildren(newPath, child, tabSetComponents, tabComponents, floatingWindows, splitterComponents);
             } else if (child instanceof TabNode) {
-                const newPath = path + "/t" + (tabCount++);
+                const newPath = path + "/t" + tabCount++;
                 const selectedTab = child.getParent()!.getChildren()[(child.getParent() as TabSetNode).getSelected()];
                 if (selectedTab === undefined) {
                     // this should not happen!
@@ -806,7 +928,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 }
             } else {
                 // is row
-                const newPath = path + ((child.getOrientation() === Orientation.HORZ) ? "/r" : "/c") + (rowCount++);
+                const newPath = path + (child.getOrientation() === Orientation.HORZ ? "/r" : "/c") + rowCount++;
                 this.renderChildren(newPath, child as RowNode, tabSetComponents, tabComponents, floatingWindows, splitterComponents);
             }
         }
@@ -864,7 +986,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param dragText the text to show on the drag panel
      * @param event
      */
-    moveTabWithDragAndDrop(node: (TabNode | TabSetNode), dragText?: string, event?: Event) {
+    moveTabWithDragAndDrop(node: TabNode | TabSetNode, dragText?: string, event?: Event) {
         this.dragStart(event, dragText, node, true, undefined, undefined);
     }
 
@@ -918,9 +1040,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         }
 
         try {
-            this.customDrop?.invalidated?.()
+            this.customDrop?.invalidated?.();
         } catch (e) {
-            console.error(e)
+            console.error(e);
         }
 
         DragDrop.instance.hideGlass();
@@ -935,11 +1057,11 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
             try {
                 rootdiv.removeChild(this.outlineDiv!);
-            } catch (e) { }
+            } catch (e) {}
 
             try {
                 rootdiv.removeChild(this.dragDiv!);
-            } catch (e) { }
+            } catch (e) {}
 
             this.dragDiv = undefined;
             this.hidePortal();
@@ -950,9 +1072,9 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
 
             try {
-                this.customDrop?.invalidated?.()
+                this.customDrop?.invalidated?.();
             } catch (e) {
-                console.error(e)
+                console.error(e);
             }
 
             DragDrop.instance.hideGlass();
@@ -960,7 +1082,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             this.customDrop = undefined;
         }
         this.setState({ showHiddenBorder: DockLocation.CENTER });
-
     };
 
     /** @internal */
@@ -995,12 +1116,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             content = <div style={{ whiteSpace: "pre" }}>{text.replace("<br>", "\n")}</div>;
         } else {
             if (node && node instanceof TabNode) {
-                content = (<TabButtonStamp
-                    node={node}
-                    layout={this}
-                    iconFactory={this.props.iconFactory}
-                    titleFactory={this.props.titleFactory}
-                />);
+                content = <TabButtonStamp node={node} layout={this} iconFactory={this.props.iconFactory} titleFactory={this.props.titleFactory} />;
             }
         }
 
@@ -1020,10 +1136,12 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 onRendered={() => {
                     this.dragRectRendered = true;
                     onRendered?.();
-                }}>
+                }}
+            >
                 {content}
             </DragRectRenderWrapper>,
-            this.dragDiv!);
+            this.dragDiv!
+        );
     };
 
     /** @internal */
@@ -1154,7 +1272,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                         this.fnNewNodeDropped = undefined;
                     }
                 } catch (e) {
-                    console.error(e)
+                    console.error(e);
                 }
             } else if (this.newTabJson !== undefined) {
                 const newNode = this.doAction(Actions.addNode(this.newTabJson, this.dropInfo.node.getId(), this.dropInfo.location, this.dropInfo.index));
@@ -1173,7 +1291,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     };
 
     /** @internal */
-    private handleCustomTabDrag(dropInfo: DropInfo, pos: { x: number; y: number; }, event: React.MouseEvent<Element, MouseEvent>) {
+    private handleCustomTabDrag(dropInfo: DropInfo, pos: { x: number; y: number }, event: React.MouseEvent<Element, MouseEvent>) {
         let invalidated = this.customDrop?.invalidated;
         const currentCallback = this.customDrop?.callback;
         this.customDrop = undefined;
@@ -1199,7 +1317,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                             x: pos.x - tabRect.x,
                             y: pos.y - tabRect.y,
                             location: dropInfo.location,
-                            cursor: dest.cursor
+                            cursor: dest.cursor,
                         };
                     }
                 } catch (e) {
@@ -1237,8 +1355,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     onDragEnter(event: React.DragEvent<HTMLDivElement>) {
         // DragDrop keeps track of number of dragenters minus the number of
         // dragleaves. Only start a new drag if there isn't one already.
-        if (DragDrop.instance.isDragging())
-            return;
+        if (DragDrop.instance.isDragging()) return;
         const drag = this.props.onExternalDrag!(event);
         if (drag) {
             // Mimic addTabWithDragAndDrop, but pass in DragEvent
@@ -1247,7 +1364,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             this.dragStart(event, drag.dragText, TabNode._fromJson(drag.json, this.props.model, false), true, undefined, undefined);
         }
     }
-
 
     /** @internal */
     checkForBorderToShow(x: number, y: number) {
@@ -1258,8 +1374,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         let overEdge = false;
         if (this.props.model.isEnableEdgeDock() && this.state.showHiddenBorder === DockLocation.CENTER) {
-            if ((y > c.y - offset && y < c.y + offset) ||
-                (x > c.x - offset && x < c.x + offset)) {
+            if ((y > c.y - offset && y < c.y + offset) || (x > c.x - offset && x < c.x + offset)) {
                 overEdge = true;
             }
         }
@@ -1284,10 +1399,45 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     private dragInitialised?: boolean;
 
+    // @ts-ignore
+    private prepareAndPostSharedWorkerMessage1(event?: React.MouseEvent<Element, MouseEvent>, isDropEvent = false) {
+        if (!this._worker) {
+            return;
+        }
+
+        if (!event && isDropEvent) {
+            // Cancel drag&drop on worker listeners
+            this._worker.port.postMessage({
+                type: "drop",
+            });
+            return;
+        }
+
+        if (!event?.target) {
+            return;
+        }
+
+        const node = this.dragNode as TabNode;
+        const posEvent = DragDrop.instance._getLocationEvent(event);
+
+        const data = {
+            type: isDropEvent ? "drop" : "startDrag",
+            dragNode: node?.toJson(),
+            dragRect: node.getTabRect(),
+            event: this.cloneMouseEvent(event),
+            clientX: posEvent.clientX + window.screenX,
+            clientY: posEvent.clientY,
+            originScreenX: window.screenX,
+            originScreenY: window.screenY,
+        };
+
+        this._worker.port.postMessage(data);
+    }
+
     /**
      * Prepares the message and sends it over shared worker
-     * @param event 
-     * @param isDropEvent 
+     * @param event
+     * @param isDropEvent
      */
     private prepareAndPostSharedWorkerMessage(event?: React.MouseEvent<Element, MouseEvent>, isDropEvent = false) {
         if (!this._worker) {
@@ -1297,7 +1447,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         if (!event && isDropEvent) {
             // Cancel drag&drop on worker listeners
             this._worker.port.postMessage({
-                type: "drop"
+                id: this.id,
+                messageType: WorkerMessageType.Drop,
             });
             return;
         }
@@ -1332,7 +1483,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
             this.dragInitialised = true;
             this._worker?.port.postMessage(data);
-        } else if (this.listenerLayoutId && this.dragInitialised) {
+        } else if (this.listenerLayoutId && this.dragInitialised && !isDropEvent) {
             const data = {
                 id: this.id,
                 messageType: WorkerMessageType.CoordinatesUpdate,
@@ -1343,7 +1494,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             };
 
             this._worker?.port.postMessage(data);
-        } else if (isDropEvent) {
+        } else if (this.listenerLayoutId && this.dragInitialised && isDropEvent) {
             const data = {
                 id: this.id,
                 messageType: WorkerMessageType.Drop,
@@ -1359,7 +1510,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /**
      * Clones the mouse event so it can be sent over shared worker instance
-     * @param event 
+     * @param event
      * @returns
      */
     private cloneMouseEvent(event: React.MouseEvent<Element, MouseEvent>) {
@@ -1378,12 +1529,12 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /**
      * Deserializes shared worker message, calculates width and height for new mouse event and instantiates mouse event
-     * @param serializedEvent 
-     * @param clientX 
-     * @param clientY 
-     * @param originScreenX 
-     * @param originScreenY 
-     * @returns { MouseEvent } 
+     * @param serializedEvent
+     * @param clientX
+     * @param clientY
+     * @param originScreenX
+     * @param originScreenY
+     * @returns { MouseEvent }
      */
     private deserializeMouseEvent(clientX: number, clientY: number, originScreenX: number, originScreenY: number, serializedEvent?: any): MouseEvent | undefined {
         if (serializedEvent) {
@@ -1420,9 +1571,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     DragDrop.instance.startX = clientX;
                 }
                 finalX = clientX - DragDrop.instance.startX;
-            }
-
-            else {
+            } else {
                 if (!DragDrop.instance.startX) {
                     DragDrop.instance.startX = clientX;
                 }
@@ -1439,10 +1588,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         const event = new MouseEvent(this.eventType, { ...this.eventData, clientX: finalX, clientY: finalY });
 
         if (serializedEvent) {
-            Object.defineProperty(event, 'target', { value: this.target.body });
+            Object.defineProperty(event, "target", { value: this.target.body });
         }
 
-        return event
+        return event;
     }
 
     /** @internal */
@@ -1451,20 +1600,14 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     }
 
     /** @internal */
-    customizeTab(
-        tabNode: TabNode,
-        renderValues: ITabRenderValues,
-    ) {
+    customizeTab(tabNode: TabNode, renderValues: ITabRenderValues) {
         if (this.props.onRenderTab) {
             this.props.onRenderTab(tabNode, renderValues);
         }
     }
 
     /** @internal */
-    customizeTabSet(
-        tabSetNode: TabSetNode | BorderNode,
-        renderValues: ITabSetRenderValues,
-    ) {
+    customizeTabSet(tabSetNode: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) {
         if (this.props.onRenderTabSet) {
             this.props.onRenderTabSet(tabSetNode, renderValues);
         }
@@ -1526,7 +1669,5 @@ const DragRectRenderWrapper = (props: IDragRectRenderWrapper) => {
         props.onRendered?.();
     }, [props]);
 
-    return (<React.Fragment>
-        {props.children}
-    </React.Fragment>)
-}
+    return <React.Fragment>{props.children}</React.Fragment>;
+};

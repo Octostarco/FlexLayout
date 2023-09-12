@@ -222,5 +222,4 @@ export class TabNode extends Node implements IDraggable {
     static getAttributeDefinitions() {
         return TabNode._attributeDefinitions;
     }
-
 }

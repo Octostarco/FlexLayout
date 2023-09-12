@@ -48,8 +48,8 @@ export const FloatingWindow = (props: React.PropsWithChildren<IFloatingWindowPro
                     {
                         href: styleSheet.href,
                         type: styleSheet.type,
-                        rules: rules ? Array.from(rules).map(rule => rule.cssText) : null,
-                    }
+                        rules: rules ? Array.from(rules).map((rule) => rule.cssText) : null,
+                    },
                 ];
             } catch (e) {
                 return result;

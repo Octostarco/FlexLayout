@@ -27,7 +27,6 @@ export const TabButton = (props: ITabButtonProps) => {
     const contentRef = React.useRef<HTMLInputElement | null>(null);
 
     const onMouseDown = (event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>) => {
-
         if (!isAuxMouseEvent(event) && !layout.getEditingTab()) {
             layout.dragStart(event, undefined, node, node.isEnableDrag(), onClick, onDoubleClick);
         }
@@ -143,15 +142,9 @@ export const TabButton = (props: ITabButtonProps) => {
 
     const renderState = getRenderStateEx(layout, node, iconFactory, titleFactory);
 
-    let content = renderState.content ? (
-        <div className={cm(CLASSES.FLEXLAYOUT__TAB_BUTTON_CONTENT)}>
-            {renderState.content}
-        </div>) : null;
+    let content = renderState.content ? <div className={cm(CLASSES.FLEXLAYOUT__TAB_BUTTON_CONTENT)}>{renderState.content}</div> : null;
 
-    const leading = renderState.leading ? (
-        <div className={cm(CLASSES.FLEXLAYOUT__TAB_BUTTON_LEADING)}>
-            {renderState.leading}
-        </div>) : null;
+    const leading = renderState.leading ? <div className={cm(CLASSES.FLEXLAYOUT__TAB_BUTTON_LEADING)}>{renderState.leading}</div> : null;
 
     if (layout.getEditingTab() === node) {
         content = (
@@ -179,8 +172,9 @@ export const TabButton = (props: ITabButtonProps) => {
                 className={cm(CLASSES.FLEXLAYOUT__TAB_BUTTON_TRAILING)}
                 onMouseDown={onCloseMouseDown}
                 onClick={onClose}
-                onTouchStart={onCloseMouseDown}>
-                {(typeof icons.close === "function") ? icons.close(node) : icons.close}
+                onTouchStart={onCloseMouseDown}
+            >
+                {typeof icons.close === "function" ? icons.close(node) : icons.close}
             </div>
         );
     }

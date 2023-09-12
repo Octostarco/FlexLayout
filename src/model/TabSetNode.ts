@@ -503,10 +503,8 @@ export class TabSetNode extends Node implements IDraggable, IDropTarget {
         return prefSize;
     }
 
-
     /** @internal */
     static getAttributeDefinitions() {
         return TabSetNode._attributeDefinitions;
     }
-
 }

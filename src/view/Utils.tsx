@@ -3,18 +3,13 @@ import { TabNode } from "../model/TabNode";
 import { IconFactory, ILayoutCallbacks, ITitleObject, TitleFactory } from "./Layout";
 
 /** @internal */
-export function getRenderStateEx(
-    layout: ILayoutCallbacks,
-    node: TabNode,
-    iconFactory?: IconFactory,
-    titleFactory?: TitleFactory
-) {
+export function getRenderStateEx(layout: ILayoutCallbacks, node: TabNode, iconFactory?: IconFactory, titleFactory?: TitleFactory) {
     let leadingContent = iconFactory ? iconFactory(node) : undefined;
     let titleContent: React.ReactNode = node.getName();
     let name = node.getName();
 
     function isTitleObject(obj: any): obj is ITitleObject {
-        return obj.titleContent !== undefined
+        return obj.titleContent !== undefined;
     }
 
     if (titleFactory !== undefined) {
@@ -45,7 +40,6 @@ export function getRenderStateEx(
     node._setRenderedName(renderState.name);
 
     return renderState;
-
 }
 
 /** @internal */
@@ -57,7 +51,6 @@ export function hideElement(style: Record<string, any>, useVisibility: Constrain
     }
 }
 
-
 /** @internal */
 export function isAuxMouseEvent(event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>) {
     let auxEvent = false;
@@ -68,4 +61,3 @@ export function isAuxMouseEvent(event: React.MouseEvent<HTMLDivElement, MouseEve
     }
     return auxEvent;
 }
-
