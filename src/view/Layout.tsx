@@ -535,10 +535,40 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         this.dragInitialised = false;
     }
 
-    handleWorkerMessage(e: MessageEvent) {
+    /**
+     * Determines whether a mouse event's coordinates are within desired window boundaries.
+     *
+     * This method checks:
+     * 1. If the mouse's x-coordinate (clientX) is between the left and right boundaries of the window.
+     * 2. If the mouse's y-coordinate (clientY) is either above the top boundary or below the bottom boundary of the window.
+     *
+     * @param clientX - The x-coordinate of the mouse event. Optional.
+     * @param clientY - The y-coordinate of the mouse event. Optional.
+     *
+     * @returns A boolean indicating whether the mouse coordinates are within the desired bounds.
+     */
+    private isMouseEventWithinDesiredBounds(clientX?: number, clientY?: number): boolean {
         const windowLeftBound = window.screenX;
         const windowRightBound = window.screenX + window.innerWidth;
+        const windowTopBound = window.screenY;
+        const windowBottomBound = window.screenY + window.innerHeight;
 
+        return !!clientX && !!clientY && clientX > windowLeftBound && clientX < windowRightBound && (clientY > windowTopBound || clientY < windowBottomBound);
+    }
+
+    /**
+     * Processes the message received from the worker and takes appropriate actions based on its content.
+     *
+     * This method orchestrates a series of tasks depending on the type of message received from the worker.
+     * It checks:
+     * 1. The validity of the message and its ID.
+     * 2. Ignores messages that have the same ID as the current component.
+     * 3. Handles responses from the worker based on the messageType.
+     * 4. Determines if the mouse event is within the desired window bounds and processes accordingly.
+     *
+     * @param e - The MessageEvent received from the worker.
+     */
+    handleWorkerMessage(e: MessageEvent) {
         // Extract the message data from the received event
         let messageData = e.data as PingMessage;
 
@@ -566,7 +596,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         }
 
         // Check if the mouse event is within the window bounds
-        if (messageData.clientX && messageData.clientY && messageData.clientX > windowLeftBound && messageData.clientX < windowRightBound) {
+        if (this.isMouseEventWithinDesiredBounds(messageData.clientX, messageData.clientY)) {
             switch (messageData.messageType) {
                 case WorkerMessageType.Ping:
                     this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
@@ -1244,8 +1274,14 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
             }
         }
 
-        // Check if mouse is out of window bounds, if it is we need to send the event over shared worker
-        if ((clientRect.right < event.clientX || clientRect.left > event.clientX) && !this.externalDragStarted) {
+        // Check if mouse is out of window bounds
+        if (
+            (this.isMouseOutsideLeft(clientRect, event.clientX) ||
+                this.isMouseOutsideRight(clientRect, event.clientX) ||
+                this.isMouseAbove(clientRect, event.clientY) ||
+                this.isMouseBelow(clientRect, event.clientY)) &&
+            !this.externalDragStarted
+        ) {
             this.draggingOutOfWindowBounds = true;
             this.prepareAndPostSharedWorkerMessage(event);
         } else {
@@ -1302,6 +1338,46 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         this.setState({ showHiddenBorder: DockLocation.CENTER });
     };
+
+    /**
+     * Checks if the mouse pointer is outside the left boundary of the given rectangle.
+     * @param domRect
+     * @param {number} x - The x-coordinate of the mouse pointer.
+     * @returns {boolean} - Returns true if the mouse pointer is outside the left boundary.
+     */
+    isMouseOutsideLeft(domRect: DOMRect, x: number): boolean {
+        return x < domRect.left;
+    }
+
+    /**
+     * Checks if the mouse pointer is outside the right boundary of the given rectangle.
+     * @param domRect
+     * @param {number} x - The x-coordinate of the mouse pointer.
+     * @returns {boolean} - Returns true if the mouse pointer is outside the right boundary.
+     */
+    isMouseOutsideRight(domRect: DOMRect, x: number): boolean {
+        return x > domRect.right;
+    }
+
+    /**
+     * Checks if the mouse pointer is above the top boundary of the given rectangle.
+     * @param domRect
+     * @param {number} y - The y-coordinate of the mouse pointer.
+     * @returns {boolean} - Returns true if the mouse pointer is above the top boundary.
+     */
+    isMouseAbove(domRect: DOMRect, y: number): boolean {
+        return y < domRect.top;
+    }
+
+    /**
+     * Checks if the mouse pointer is below the bottom boundary of the given rectangle.
+     * @param domRect
+     * @param {number} y - The y-coordinate of the mouse pointer.
+     * @returns {boolean} - Returns true if the mouse pointer is below the bottom boundary.
+     */
+    isMouseBelow(domRect: DOMRect, y: number): boolean {
+        return y > domRect.bottom;
+    }
 
     /** @internal */
     private handleCustomTabDrag(dropInfo: DropInfo, pos: { x: number; y: number }, event: React.MouseEvent<Element, MouseEvent>) {
@@ -1413,7 +1489,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     private dragInitialised?: boolean;
 
     // @ts-ignore
-    // private prepareAndPostSharedWorkerMessage1(event?: React.MouseEvent<Element, MouseEvent>, isDropEvent = false) {
+    // private prepareAndPostSharedWorkerMessageOld(event?: React.MouseEvent<Element, MouseEvent>, isDropEvent = false) {
     //     if (!this._worker) {
     //         return;
     //     }

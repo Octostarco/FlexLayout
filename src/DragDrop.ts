@@ -333,15 +333,20 @@ export class DragDrop {
 
         this._active = false;
 
-        this._rootElement!.removeEventListener("dragenter", this._onDragEnter);
-        this._rootElement!.removeEventListener("dragover", this._onMouseMove);
-        this._rootElement!.removeEventListener("dragleave", this._onDragLeave);
-        this._document!.removeEventListener("dragend", this._onDragCancel);
-        this._document!.removeEventListener("drop", this._onMouseUp);
-        this._document!.removeEventListener("mousemove", this._onMouseMove);
-        this._document!.removeEventListener("mouseup", this._onMouseUp);
-        this._document!.removeEventListener("touchend", this._onMouseUp);
-        this._document!.removeEventListener("touchmove", this._onMouseMove);
+        if (this._rootElement) {
+            this._rootElement!.removeEventListener("dragenter", this._onDragEnter);
+            this._rootElement!.removeEventListener("dragover", this._onMouseMove);
+            this._rootElement!.removeEventListener("dragleave", this._onDragLeave);
+        }
+
+        if (this._document) {
+            this._document!.removeEventListener("dragend", this._onDragCancel);
+            this._document!.removeEventListener("drop", this._onMouseUp);
+            this._document!.removeEventListener("mousemove", this._onMouseMove);
+            this._document!.removeEventListener("mouseup", this._onMouseUp);
+            this._document!.removeEventListener("touchend", this._onMouseUp);
+            this._document!.removeEventListener("touchmove", this._onMouseMove);
+        }
 
         if (!this._manualGlassManagement) {
             this.hideGlass();
