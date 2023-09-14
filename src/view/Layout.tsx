@@ -382,118 +382,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     private listenerLayoutId?: string;
 
-    handleWorkerMessageOld(e: MessageEvent) {
-        const windowLeftBound = window.screenX;
-        const windowRightBound = window.screenX + window.innerWidth;
-
-        // Check if drag event is in current window bounds
-        if (e.data.clientX > windowLeftBound && e.data.clientX < windowRightBound) {
-            // drop happened
-            if (DragDrop.instance.isDragging() && e.data.type === "drop") {
-                DragDrop.instance._onMouseUp(e);
-                DragDrop.instance.startX = 0;
-                this.externalDragStarted = false;
-            }
-            // cancel the root drag&drop
-            if (!DragDrop.instance.isDragging() && e.data.type === "drop") {
-                this.onCancelDrag(true);
-                DragDrop.instance.startX = 0;
-            }
-            // drag element is moved over drag zone, dragging has been initialized in step below
-            else if (this.externalDragStarted) {
-                let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.event);
-
-                if (event) {
-                    DragDrop.instance._onMouseMove(event);
-                }
-            }
-            // drag zone entered first time
-            else if (!DragDrop.instance.isDragging() && e) {
-                DragDrop.instance.startX = 0;
-                this.externalDragStarted = true;
-                this.dragNode = TabNode._fromJson(e.data.dragNode, this.props.model, false);
-                const receivedRect = e.data.dragRect as Rect;
-                const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
-                (this.dragNode as TabNode)._setTabRect(rect);
-
-                let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.event);
-                this.moveTabWithDragAndDrop(this.dragNode as TabNode, e.data.dragNode.name, event);
-            }
-        } else if (DragDrop.instance.isDragging() && e.data.type === "drop") {
-            DragDrop.instance._onMouseUp(e);
-            DragDrop.instance.startX = 0;
-            this.externalDragStarted = false;
-        }
-    }
-
-    handleWorkerMessageDino(e: MessageEvent) {
-        const windowLeftBound = window.screenX;
-        const windowRightBound = window.screenX + window.innerWidth;
-
-        let messageData = e.data as PingMessage;
-
-        if (!messageData || !messageData.id) {
-            return;
-        }
-
-        if (messageData.id === this.id) {
-            // If id provided in worker message is same as current component id we need to ignore the message
-            return;
-        }
-
-        if (e.data.messageType === WorkerMessageType.PositivePingResponse) {
-            this.listenerLayoutId = (e.data as PingMessage).id;
-            return;
-        }
-
-        if (e.data.messageType === WorkerMessageType.NegativePingResponse) {
-            this.listenerLayoutId = undefined;
-            this.dragInitialised = false;
-            return;
-        }
-
-        console.log("Listening Drop Event, Message Type: ", messageData.messageType);
-        if (messageData.clientX && messageData.clientY && messageData.clientX > windowLeftBound && messageData.clientX < windowRightBound) {
-            console.log("Listening Drop Event Inside, Message Type: ", messageData.messageType);
-            if (messageData.messageType === WorkerMessageType.Ping) {
-                this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
-            } else if (messageData.messageType === WorkerMessageType.InitDrag) {
-                DragDrop.instance.startX = 0;
-                this.externalDragStarted = true;
-                this.dragNode = TabNode._fromJson(e.data.dragNode, this.props.model, false);
-                const receivedRect = e.data.dragRect as Rect;
-                const rect = new Rect(receivedRect.x, receivedRect.y, receivedRect.width, receivedRect.height);
-                (this.dragNode as TabNode)._setTabRect(rect);
-
-                let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.event);
-                this.moveTabWithDragAndDrop(this.dragNode as TabNode, e.data.dragNode.name, event);
-            } else if (messageData.messageType === WorkerMessageType.CoordinatesUpdate) {
-                let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY);
-
-                if (event) {
-                    DragDrop.instance._onMouseMove(event);
-                }
-            } else if (DragDrop.instance.isDragging() && messageData.messageType === WorkerMessageType.Drop) {
-                DragDrop.instance._onMouseUp(e);
-                DragDrop.instance.startX = 0;
-                this.externalDragStarted = false;
-            } else if (!DragDrop.instance.isDragging() && messageData.messageType === WorkerMessageType.Drop) {
-                this.onCancelDrag(true);
-                DragDrop.instance.startX = 0;
-            }
-        }
-        // when mouse coordinates are out of window bounds we react with negative ping response
-        else if (
-            messageData.messageType === WorkerMessageType.InitDrag ||
-            messageData.messageType ===
-                WorkerMessageType.CoordinatesUpdate /*&& messageData.clientX && messageData.clientY && (messageData.clientX < windowLeftBound || messageData.clientX > windowRightBound)*/
-        ) {
-            this._worker?.port.postMessage({ messageType: WorkerMessageType.NegativePingResponse, id: this.id } as PingMessage);
-            this.listenerLayoutId = undefined;
-            this.dragInitialised = false;
-        }
-    }
-
     /**
      * Initializes the drag operation.
      * This function prepares the drag node and sets up initial drag configurations.
@@ -501,9 +389,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param e The message event received from the worker.
      */
     initializeDrag(e: MessageEvent) {
-        // Set the start X position of DragDrop instance to begin dragging
-        DragDrop.instance.startX = 0;
-
         // Indicate that an external drag operation has started
         this.externalDragStarted = true;
 
@@ -517,7 +402,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         (this.dragNode as TabNode)._setTabRect(rect);
 
         // Deserialize the mouse event for the drag operation
-        const event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.event);
+        const event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.originInnerWidth, e.data.originInnerHeight, e.data.event);
         // Move the tab using drag and drop based on the deserialized event
         this.moveTabWithDragAndDrop(this.dragNode as TabNode, e.data.dragNode.name, event);
     }
@@ -602,10 +487,11 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
                     break;
                 case WorkerMessageType.InitDrag:
+                    DragDrop.instance.startX = 0;
                     this.initializeDrag(e);
                     break;
                 case WorkerMessageType.CoordinatesUpdate:
-                    let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY);
+                    let event = this.deserializeMouseEvent(e.data.clientX, e.data.clientY, e.data.originScreenX, e.data.originScreenY, e.data.originInnerWidth, e.data.originInnerHeight);
                     if (event) {
                         DragDrop.instance._onMouseMove(event);
                     }
@@ -615,9 +501,17 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                         DragDrop.instance._onMouseUp(e);
                         DragDrop.instance.startX = 0;
                         this.externalDragStarted = false;
+
+                        // Reset the listener layout ID and drag initialization state
+                        this.listenerLayoutId = undefined;
+                        this.dragInitialised = false;
                     } else {
                         this.onCancelDrag(true);
                         DragDrop.instance.startX = 0;
+
+                        // Reset the listener layout ID and drag initialization state
+                        this.listenerLayoutId = undefined;
+                        this.dragInitialised = false;
                     }
                     break;
             }
@@ -1488,41 +1382,6 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     private dragInitialised?: boolean;
 
-    // @ts-ignore
-    // private prepareAndPostSharedWorkerMessageOld(event?: React.MouseEvent<Element, MouseEvent>, isDropEvent = false) {
-    //     if (!this._worker) {
-    //         return;
-    //     }
-    //
-    //     if (!event && isDropEvent) {
-    //         // Cancel drag&drop on worker listeners
-    //         this._worker.port.postMessage({
-    //             type: "drop",
-    //         });
-    //         return;
-    //     }
-    //
-    //     if (!event?.target) {
-    //         return;
-    //     }
-    //
-    //     const node = this.dragNode as TabNode;
-    //     const posEvent = DragDrop.instance._getLocationEvent(event);
-    //
-    //     const data = {
-    //         type: isDropEvent ? "drop" : "startDrag",
-    //         dragNode: node?.toJson(),
-    //         dragRect: node.getTabRect(),
-    //         event: this.cloneMouseEvent(event),
-    //         clientX: posEvent.clientX + window.screenX,
-    //         clientY: posEvent.clientY,
-    //         originScreenX: window.screenX,
-    //         originScreenY: window.screenY,
-    //     };
-    //
-    //     this._worker.port.postMessage(data);
-    // }
-
     /**
      * Prepares the message and sends it over shared worker based on event type and state.
      * @param event - The React mouse event.
@@ -1572,6 +1431,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 clientY: posEvent.clientY,
                 originScreenX: window.screenX,
                 originScreenY: window.screenY,
+                originInnerWidth: window.innerWidth,
+                originInnerHeight: window.innerHeight,
             };
 
             this.dragInitialised = true;
@@ -1586,6 +1447,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 clientY: posEvent.clientY,
                 originScreenX: window.screenX,
                 originScreenY: window.screenY,
+                originInnerWidth: window.innerWidth,
+                originInnerHeight: window.innerHeight,
             };
 
             this.postWorkerMessage(data);
@@ -1599,6 +1462,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 clientY: posEvent.clientY,
                 originScreenX: window.screenX,
                 originScreenY: window.screenY,
+                originInnerWidth: window.innerWidth,
+                originInnerHeight: window.innerHeight,
             };
 
             this.postWorkerMessage(data);
@@ -1634,6 +1499,8 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
     /**
      * Deserializes shared worker message, calculates width and height for new mouse event and instantiates mouse event
+     * @param originInnerWidth
+     * @param originInnerHeight
      * @param serializedEvent
      * @param clientX
      * @param clientY
@@ -1641,7 +1508,16 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
      * @param originScreenY
      * @returns { MouseEvent }
      */
-    private deserializeMouseEvent(clientX: number, clientY: number, originScreenX: number, originScreenY: number, serializedEvent?: any): MouseEvent | undefined {
+    // @ts-ignore
+    private deserializeMouseEvent(
+        clientX: number,
+        clientY: number,
+        originScreenX: number,
+        originScreenY: number,
+        originInnerWidth: number,
+        originInnerHeight: number,
+        serializedEvent?: any
+    ): MouseEvent | undefined {
         if (serializedEvent) {
             this.eventType = serializedEvent.type;
             this.eventData = serializedEvent.eventData;
@@ -1651,6 +1527,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         let finalX = 0;
         let finalY = clientY;
+        const horizontalGapDifference = window.screenX - originScreenX;
+        const browserWidthDifference = window.innerWidth - originInnerWidth;
+        const verticalGapDifference = window.screenY - originScreenY;
+        const browserHeightDifference = window.innerHeight - originInnerHeight;
 
         // If there is an diff in browser windows height we need to calculate manually the height for new mouse event
         function calculateMouseEventHeight() {
@@ -1669,34 +1549,69 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         calculateMouseEventHeight();
 
+        console.log("ScreenX: ", window.screenX);
+        console.log("OriginScreenX: ", originScreenX);
+        console.log("ClientX: ", clientX);
+        console.log("StartX: ", DragDrop.instance.startX);
+        console.log("Horizontal Gap Difference: ", horizontalGapDifference);
+        console.log("Browser Width Difference: ", browserWidthDifference);
+        console.log("Vertical Gap Difference: ", verticalGapDifference);
+        console.log("Browser Height Difference: ", browserHeightDifference);
+
         // If browser windows are far apart on X axis we need to manually calculate the width for new mouse event
-        function calculateMouseEventWidth() {
-            if (window.screenX > originScreenX) {
-                if (!DragDrop.instance.startX) {
-                    DragDrop.instance.startX = clientX;
-                }
-                finalX = clientX - DragDrop.instance.startX;
-            } else {
-                if (!DragDrop.instance.startX) {
-                    DragDrop.instance.startX = clientX;
-                }
+        const calculateMouseEventWidth = () => {
+            if (this.isToRight(originScreenX, window.innerWidth, window.screenX) && this.isBelow(originScreenY, window.screenY, window.innerHeight)) {
+                console.log("Window A is to the right of Window B && Window A is below Window B");
                 finalX = clientX - window.screenX;
+            } else if (this.isToLeft(originScreenX, originInnerWidth, window.screenX) && this.isAbove(originScreenY, originInnerHeight, window.screenY)) {
+                console.log("Window A is to the left of Window B && Window A is above Window B");
+                finalX = clientX - DragDrop.instance.startX;
+            } else if (this.isToLeft(originScreenX, originInnerWidth, window.screenX)) {
+                console.log("Window A is to the left of Window B");
+                finalX = clientX - DragDrop.instance.startX;
+            } else if (this.isToRight(originScreenX, window.innerWidth, window.screenX)) {
+                console.log("Window A is to the right of Window B");
+                finalX = clientX - window.screenX;
+            } else if (this.isAbove(originScreenY, originInnerHeight, window.screenY)) {
+                console.log("Window A is above Window B");
+                finalX = clientX - window.screenX + horizontalGapDifference;
+                console.log(">", finalX);
+            } else if (this.isBelow(originScreenY, window.screenY, window.innerHeight)) {
+                console.log("Window A is below Window B");
+                finalX = clientX - window.screenX + horizontalGapDifference;
+                console.log(">", finalX);
             }
-        }
+        };
 
         calculateMouseEventWidth();
+        console.log("Final X: ", finalX, " FinalY: ", finalY);
 
         if (!this.target) {
             return;
         }
 
         const event = new MouseEvent(this.eventType, { ...this.eventData, clientX: finalX, clientY: finalY });
-
         if (serializedEvent) {
             Object.defineProperty(event, "target", { value: this.target.body });
         }
 
         return event;
+    }
+
+    isToLeft(originScreenX: number, originInnerWidth: number, currentScreenX: number) {
+        return originScreenX + originInnerWidth < currentScreenX;
+    }
+
+    isToRight(originScreenX: number, currentInnerWidth: number, currentScreenX: number) {
+        return originScreenX > currentScreenX + currentInnerWidth;
+    }
+
+    isAbove(originScreenY: number, originInnerHeight: number, currentScreenY: number) {
+        return originScreenY + originInnerHeight < currentScreenY;
+    }
+
+    isBelow(originScreenY: number, currentScreenY: number, currentInnerHeight: number) {
+        return originScreenY > currentScreenY + currentInnerHeight;
     }
 
     /** @internal */
