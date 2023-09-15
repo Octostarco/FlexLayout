@@ -488,6 +488,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     break;
                 case WorkerMessageType.InitDrag:
                     DragDrop.instance.startX = 0;
+                    DragDrop.instance.startY = 0;
                     this.initializeDrag(e);
                     break;
                 case WorkerMessageType.CoordinatesUpdate:
@@ -500,6 +501,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     if (DragDrop.instance.isDragging()) {
                         DragDrop.instance._onMouseUp(e);
                         DragDrop.instance.startX = 0;
+                        DragDrop.instance.startY = 0;
                         this.externalDragStarted = false;
 
                         // Reset the listener layout ID and drag initialization state
@@ -508,6 +510,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     } else {
                         this.onCancelDrag(true);
                         DragDrop.instance.startX = 0;
+                        DragDrop.instance.startY = 0;
 
                         // Reset the listener layout ID and drag initialization state
                         this.listenerLayoutId = undefined;
@@ -1498,17 +1501,16 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
     private target?: Document;
 
     /**
-     * Deserializes shared worker message, calculates width and height for new mouse event and instantiates mouse event
-     * @param originInnerWidth
-     * @param originInnerHeight
-     * @param serializedEvent
-     * @param clientX
-     * @param clientY
-     * @param originScreenX
-     * @param originScreenY
-     * @returns { MouseEvent }
+     * Deserialize a MouseEvent based on provided clientX, clientY, origin positions, and an optional serialized event.
+     * @param clientX - The x-coordinate within the application's viewport.
+     * @param clientY - The y-coordinate within the application's viewport.
+     * @param originScreenX - The x-coordinate of the original screen.
+     * @param originScreenY - The y-coordinate of the original screen.
+     * @param originInnerWidth - The inner width of the original screen.
+     * @param originInnerHeight - The inner height of the original screen.
+     * @param serializedEvent - An optional serialized event.
+     * @returns A MouseEvent based on the provided parameters or undefined if no valid target exists.
      */
-    // @ts-ignore
     private deserializeMouseEvent(
         clientX: number,
         clientY: number,
@@ -1527,64 +1529,48 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         let finalX = 0;
         let finalY = clientY;
-        const horizontalGapDifference = window.screenX - originScreenX;
-        const browserWidthDifference = window.innerWidth - originInnerWidth;
-        const verticalGapDifference = window.screenY - originScreenY;
-        const browserHeightDifference = window.innerHeight - originInnerHeight;
 
-        // If there is an diff in browser windows height we need to calculate manually the height for new mouse event
-        function calculateMouseEventHeight() {
-            if (window.screenY < originScreenY) {
-                if (!DragDrop.instance.startY) {
-                    DragDrop.instance.startY = clientY;
-                }
-                finalY = originScreenY - window.screenY + clientY;
-            } else if (window.screenY > originScreenY) {
-                if (!DragDrop.instance.startY) {
-                    DragDrop.instance.startY = clientY;
-                }
+        /**
+         * Calculate the mouse event's position based on the relative positions of two browser windows.
+         * This function corrects the mouse event's X and Y coordinates based on how the two windows
+         * are positioned relative to each other.
+         *
+         * There are scenarios where:
+         * - If the browser windows are vertically apart, the Y-coordinate of the mouse event needs adjustment.
+         * - If the browser windows are horizontally apart, the X-coordinate of the mouse event needs adjustment.
+         */
+        const calculateMouseEventWidthAndHeight = () => {
+            // If the current window is to the left of the origin window
+            if (this.isToLeft(originScreenX, originInnerWidth, window.screenX)) {
+                // Adjust the X-coordinate based on the difference in starting X-positions
+                finalX = clientX - DragDrop.instance.startX;
+                // Adjust the Y-coordinate based on the difference in starting Y-positions
                 finalY = originScreenY - window.screenY + clientY;
             }
-        }
-
-        calculateMouseEventHeight();
-
-        console.log("ScreenX: ", window.screenX);
-        console.log("OriginScreenX: ", originScreenX);
-        console.log("ClientX: ", clientX);
-        console.log("StartX: ", DragDrop.instance.startX);
-        console.log("Horizontal Gap Difference: ", horizontalGapDifference);
-        console.log("Browser Width Difference: ", browserWidthDifference);
-        console.log("Vertical Gap Difference: ", verticalGapDifference);
-        console.log("Browser Height Difference: ", browserHeightDifference);
-
-        // If browser windows are far apart on X axis we need to manually calculate the width for new mouse event
-        const calculateMouseEventWidth = () => {
-            if (this.isToRight(originScreenX, window.innerWidth, window.screenX) && this.isBelow(originScreenY, window.screenY, window.innerHeight)) {
-                console.log("Window A is to the right of Window B && Window A is below Window B");
+            // If the current window is to the right of the origin window
+            else if (this.isToRight(originScreenX, window.innerWidth, window.screenX)) {
+                // Adjust the X-coordinate based on the current window's starting X-position
                 finalX = clientX - window.screenX;
-            } else if (this.isToLeft(originScreenX, originInnerWidth, window.screenX) && this.isAbove(originScreenY, originInnerHeight, window.screenY)) {
-                console.log("Window A is to the left of Window B && Window A is above Window B");
-                finalX = clientX - DragDrop.instance.startX;
-            } else if (this.isToLeft(originScreenX, originInnerWidth, window.screenX)) {
-                console.log("Window A is to the left of Window B");
-                finalX = clientX - DragDrop.instance.startX;
-            } else if (this.isToRight(originScreenX, window.innerWidth, window.screenX)) {
-                console.log("Window A is to the right of Window B");
+                // Adjust the Y-coordinate based on the difference in starting Y-positions
+                finalY = originScreenY - window.screenY + clientY;
+            }
+            // If the current window is above the origin window
+            else if (this.isAbove(originScreenY, originInnerHeight, window.screenY)) {
+                // Adjust the X-coordinate based on the current window's starting X-position and the gap difference
                 finalX = clientX - window.screenX;
-            } else if (this.isAbove(originScreenY, originInnerHeight, window.screenY)) {
-                console.log("Window A is above Window B");
-                finalX = clientX - window.screenX + horizontalGapDifference;
-                console.log(">", finalX);
-            } else if (this.isBelow(originScreenY, window.screenY, window.innerHeight)) {
-                console.log("Window A is below Window B");
-                finalX = clientX - window.screenX + horizontalGapDifference;
-                console.log(">", finalX);
+                // Adjust the Y-coordinate based on the difference in starting Y-positions
+                finalY = originScreenY - window.screenY + clientY;
+            }
+            // If the current window is below the origin window
+            else if (this.isBelow(originScreenY, window.screenY, window.innerHeight)) {
+                // Adjust the X-coordinate based on the current window's starting X-position and the gap difference
+                finalX = clientX - window.screenX;
+                // Adjust the Y-coordinate based on the difference in starting Y-positions
+                finalY = originScreenY - window.screenY + clientY;
             }
         };
 
-        calculateMouseEventWidth();
-        console.log("Final X: ", finalX, " FinalY: ", finalY);
+        calculateMouseEventWidthAndHeight();
 
         if (!this.target) {
             return;
@@ -1598,18 +1584,46 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         return event;
     }
 
+    /**
+     * Checks if Window A is to the left of Window B based on screen and inner dimensions.
+     * @param originScreenX - The x-coordinate of the original screen.
+     * @param originInnerWidth - The inner width of the original screen.
+     * @param currentScreenX - The x-coordinate of the current screen.
+     * @returns True if Window A is to the left of Window B, otherwise false.
+     */
     isToLeft(originScreenX: number, originInnerWidth: number, currentScreenX: number) {
         return originScreenX + originInnerWidth < currentScreenX;
     }
 
+    /**
+     * Checks if Window A is to the right of Window B based on screen and inner dimensions.
+     * @param originScreenX - The x-coordinate of the original screen.
+     * @param currentInnerWidth - The inner width of the current screen.
+     * @param currentScreenX - The x-coordinate of the current screen.
+     * @returns True if Window A is to the right of Window B, otherwise false.
+     */
     isToRight(originScreenX: number, currentInnerWidth: number, currentScreenX: number) {
         return originScreenX > currentScreenX + currentInnerWidth;
     }
 
+    /**
+     * Checks if Window A is above Window B based on screen and inner dimensions.
+     * @param originScreenY - The y-coordinate of the original screen.
+     * @param originInnerHeight - The inner height of the original screen.
+     * @param currentScreenY - The y-coordinate of the current screen.
+     * @returns True if Window A is above Window B, otherwise false.
+     */
     isAbove(originScreenY: number, originInnerHeight: number, currentScreenY: number) {
         return originScreenY + originInnerHeight < currentScreenY;
     }
 
+    /**
+     * Checks if Window A is below Window B based on screen and inner dimensions.
+     * @param originScreenY - The y-coordinate of the original screen.
+     * @param currentScreenY - The y-coordinate of the current screen.
+     * @param currentInnerHeight - The inner height of the current screen.
+     * @returns True if Window A is below Window B, otherwise false.
+     */
     isBelow(originScreenY: number, currentScreenY: number, currentInnerHeight: number) {
         return originScreenY > currentScreenY + currentInnerHeight;
     }
