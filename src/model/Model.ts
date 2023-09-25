@@ -58,7 +58,8 @@ export class Model {
         attributeDefinitions.add("splitterExtra", 0).setType(Attribute.NUMBER);
         attributeDefinitions.add("enableEdgeDock", true).setType(Attribute.BOOLEAN);
         attributeDefinitions.add("rootOrientationVertical", false).setType(Attribute.BOOLEAN);
-        attributeDefinitions.add("marginInsets", { top: 0, right: 0, bottom: 0, left: 0 }).setType("IInsets");
+        attributeDefinitions.add("marginInsets", { top: 0, right: 0, bottom: 0, left: 0 })
+            .setType("IInsets");
         attributeDefinitions.add("enableUseVisibility", false).setType(Attribute.BOOLEAN);
 
         // tab
@@ -87,8 +88,10 @@ export class Model {
         attributeDefinitions.add("tabSetEnableTabStrip", true).setType(Attribute.BOOLEAN);
         attributeDefinitions.add("tabSetHeaderHeight", 0).setType(Attribute.NUMBER);
         attributeDefinitions.add("tabSetTabStripHeight", 0).setType(Attribute.NUMBER);
-        attributeDefinitions.add("tabSetMarginInsets", { top: 0, right: 0, bottom: 0, left: 0 }).setType("IInsets");
-        attributeDefinitions.add("tabSetBorderInsets", { top: 0, right: 0, bottom: 0, left: 0 }).setType("IInsets");
+        attributeDefinitions.add("tabSetMarginInsets", { top: 0, right: 0, bottom: 0, left: 0 })
+            .setType("IInsets");
+        attributeDefinitions.add("tabSetBorderInsets", { top: 0, right: 0, bottom: 0, left: 0 })
+            .setType("IInsets");
         attributeDefinitions.add("tabSetTabLocation", "top").setType("ITabLocation");
         attributeDefinitions.add("tabSetMinWidth", 0).setType(Attribute.NUMBER);
         attributeDefinitions.add("tabSetMinHeight", 0).setType(Attribute.NUMBER);
@@ -130,6 +133,7 @@ export class Model {
     private _onCreateTabSet?: (tabNode?: TabNode) => ITabSetAttributes;
     /** @internal */
     private _showHiddenBorder: DockLocation;
+
 
     /**
      * 'private' constructor. Use the static method Model.fromJson(json) to create a model
@@ -183,7 +187,7 @@ export class Model {
     }
 
     /** @internal */
-    _setMaximizedTabset(tabsetNode: TabSetNode | undefined) {
+    _setMaximizedTabset(tabsetNode: (TabSetNode | undefined)) {
         this._maximizedTabSet = tabsetNode;
     }
 
@@ -263,20 +267,11 @@ export class Model {
                 break;
             }
             case Actions.MOVE_NODE: {
-                const fromNodeById = this._idMap[action.data.fromNodeId] as Node & IDraggable;
-
-                if (fromNodeById instanceof TabNode || fromNodeById instanceof TabSetNode) {
+                const fromNode = this._idMap[action.data.fromNode] as Node & IDraggable;
+                if (fromNode instanceof TabNode || fromNode instanceof TabSetNode) {
                     const toNode = this._idMap[action.data.toNode] as Node & IDropTarget;
                     if (toNode instanceof TabSetNode || toNode instanceof BorderNode || toNode instanceof RowNode) {
-                        toNode.drop(fromNodeById, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
-                    }
-                } else {
-                    const fromNode = action.data.fromNode as Node & IDraggable;
-                    if (fromNode instanceof TabNode || fromNode instanceof TabSetNode) {
-                        const toNode = this._idMap[action.data.toNode] as Node & IDropTarget;
-                        if (toNode instanceof TabSetNode || toNode instanceof BorderNode || toNode instanceof RowNode) {
-                            toNode.drop(fromNode, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
-                        }
+                        toNode.drop(fromNode, DockLocation.getByName(action.data.location), action.data.index, action.data.select);
                     }
                 }
                 break;
@@ -514,7 +509,7 @@ export class Model {
 
     /** @internal */
     _nextUniqueId() {
-        return "#" + randomUUID();
+        return '#' + randomUUID();
     }
 
     /** @internal */
@@ -539,7 +534,7 @@ export class Model {
      * set callback called when a new TabSet is created.
      * The tabNode can be undefined if it's the auto created first tabset in the root row (when the last
      * tab is deleted, the root tabset can be recreated)
-     * @param onCreateTabSet
+     * @param onCreateTabSet 
      */
     setOnCreateTabSet(onCreateTabSet: (tabNode?: TabNode) => ITabSetAttributes) {
         this._onCreateTabSet = onCreateTabSet;
@@ -562,3 +557,4 @@ export class Model {
         return JSON.stringify(this.toJson());
     }
 }
+

@@ -36,20 +36,8 @@ export class DragDrop {
     private _clickY: number;
     /** @internal */
     private _startX: number = 0;
-    get startX(): number {
-        return this._startX;
-    }
-    set startX(value: number) {
-        this._startX = value;
-    }
     /** @internal */
     private _startY: number = 0;
-    get startY(): number {
-        return this._startY;
-    }
-    set startY(value: number) {
-        this._startY = value;
-    }
     /** @internal */
     private _dragDepth: number = 0;
     /** @internal */
@@ -59,7 +47,7 @@ export class DragDrop {
     /** @internal */
     private _active: boolean = false; // drag and drop is in progress, can be used on ios to prevent body scrolling (see demo)
     /** @internal */
-    _document?: HTMLDocument;
+    private _document?: HTMLDocument;
     /** @internal */
     private _rootElement?: HTMLElement | undefined;
     /** @internal */
@@ -100,7 +88,7 @@ export class DragDrop {
                 this._rootElement = this._document.body;
             }
             this.resizeGlass();
-            this._document.defaultView?.addEventListener("resize", this.resizeGlass);
+            this._document.defaultView?.addEventListener('resize', this.resizeGlass);
             this._document.body.appendChild(this._glass!);
             this._glass!.tabIndex = -1;
             this._glass!.focus();
@@ -125,7 +113,7 @@ export class DragDrop {
     hideGlass() {
         if (this._glassShowing) {
             this._document!.body.removeChild(this._glass!);
-            this._document!.defaultView?.removeEventListener("resize", this.resizeGlass);
+            this._document!.defaultView?.removeEventListener('resize', this.resizeGlass);
             this._glassShowing = false;
             this._document = undefined;
             this._rootElement = undefined;
@@ -141,12 +129,12 @@ export class DragDrop {
     /** @internal */
     _setDefaultGlassCursor(cursor: string) {
         this._defaultGlassCursor = cursor;
-        this._updateGlassCursor();
+        this._updateGlassCursor()
     }
 
     setGlassCursorOverride(cursor: string | undefined) {
         this._glassCursorOverride = cursor;
-        this._updateGlassCursor();
+        this._updateGlassCursor()
     }
 
     startDrag(
@@ -209,7 +197,7 @@ export class DragDrop {
 
         this._active = true;
 
-        if (event?.type === "dragenter") {
+        if (event?.type === 'dragenter') {
             this._dragDepth = 1;
             this._rootElement.addEventListener("dragenter", this._onDragEnter, { passive: false });
             this._rootElement.addEventListener("dragover", this._onMouseMove, { passive: false });
@@ -266,7 +254,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    _getLocationEvent(event: any) {
+    private _getLocationEvent(event: any) {
         let posEvent: any = event;
         if (event && event.touches) {
             posEvent = event.touches[0];
@@ -299,7 +287,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    _onMouseMove(event: Event | React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement> | React.DragEvent<Element>) {
+    private _onMouseMove(event: Event | React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement> | React.DragEvent<Element>) {
         this._lastEvent = event;
 
         const posEvent = this._getLocationEvent(event);
@@ -323,7 +311,7 @@ export class DragDrop {
     }
 
     /** @internal */
-    _onMouseUp(event: Event) {
+    private _onMouseUp(event: Event) {
         this._lastEvent = event;
 
         const posEvent = this._getLocationEventEnd(event);
@@ -333,20 +321,15 @@ export class DragDrop {
 
         this._active = false;
 
-        if (this._rootElement) {
-            this._rootElement!.removeEventListener("dragenter", this._onDragEnter);
-            this._rootElement!.removeEventListener("dragover", this._onMouseMove);
-            this._rootElement!.removeEventListener("dragleave", this._onDragLeave);
-        }
-
-        if (this._document) {
-            this._document!.removeEventListener("dragend", this._onDragCancel);
-            this._document!.removeEventListener("drop", this._onMouseUp);
-            this._document!.removeEventListener("mousemove", this._onMouseMove);
-            this._document!.removeEventListener("mouseup", this._onMouseUp);
-            this._document!.removeEventListener("touchend", this._onMouseUp);
-            this._document!.removeEventListener("touchmove", this._onMouseMove);
-        }
+        this._rootElement!.removeEventListener("dragenter", this._onDragEnter);
+        this._rootElement!.removeEventListener("dragover", this._onMouseMove);
+        this._rootElement!.removeEventListener("dragleave", this._onDragLeave);
+        this._document!.removeEventListener("dragend", this._onDragCancel);
+        this._document!.removeEventListener("drop", this._onMouseUp);
+        this._document!.removeEventListener("mousemove", this._onMouseMove);
+        this._document!.removeEventListener("mouseup", this._onMouseUp);
+        this._document!.removeEventListener("touchend", this._onMouseUp);
+        this._document!.removeEventListener("touchmove", this._onMouseMove);
 
         if (!this._manualGlassManagement) {
             this.hideGlass();
@@ -363,6 +346,7 @@ export class DragDrop {
                 this._fDragCancel(this._dragging);
             }
             if (Math.abs(this._startX - posEvent.clientX) <= 5 && Math.abs(this._startY - posEvent.clientY) <= 5) {
+
                 let isDoubleClick = false;
                 const clickTime = new Date().getTime();
                 // check for double click
@@ -374,7 +358,7 @@ export class DragDrop {
                         }
                     }
                 }
-
+ 
                 if (!isDoubleClick && this._fClick) {
                     this._fClick(event);
                 }

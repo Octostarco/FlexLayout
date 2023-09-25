@@ -11,3 +11,4 @@ export interface IDropTarget {
     /** @internal */
     isEnableDrop(): boolean;
 }
+

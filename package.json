@@ -30,8 +30,7 @@
         "css": "sass style/underline.scss style/underline.css && sass style/gray.scss style/gray.css && sass style/light.scss style/light.css && sass style/light.scss test/style/light.css && sass style/dark.scss style/dark.css",
         "cypress": "cypress open-ct",
         "cypress-firefox": "cypress open-ct --browser firefox",
-        "test": "cypress run-ct",
-        "format": "prettier --write src"
+        "test": "cypress run-ct"
     },
     "author": "Caplin Systems Ltd",
     "repository": "https://github.com/caplin/FlexLayout",
@@ -46,10 +45,8 @@
     "devDependencies": {
         "@cypress/react": "^5.12.4",
         "@cypress/webpack-dev-server": "^1.8.4",
-        "@types/node": "^18.15.5",
         "@types/prismjs": "^1.26.0",
         "@types/react-dom": "^16.9.18",
-        "@types/uuid": "^9.0.2",
         "css-loader": "^6.7.1",
         "cypress": "^9.5.4",
         "html-webpack-plugin": "^5.5.0",
@@ -68,7 +65,5 @@
         "webpack-cli": "^4.9.1",
         "webpack-dev-server": "^4.8.1"
     },
-    "dependencies": {
-        "uuid": "^9.0.0"
-    }
+    "dependencies": {}
 }

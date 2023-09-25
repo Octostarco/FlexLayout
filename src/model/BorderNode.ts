@@ -136,7 +136,7 @@ export class BorderNode extends Node implements IDropTarget {
             return defaultSize;
         } else {
             const tabNode = this._children[selected] as TabNode;
-            const tabBorderSize = this._location._orientation === Orientation.HORZ ? tabNode._getAttr("borderWidth") : tabNode._getAttr("borderHeight");
+            const tabBorderSize = (this._location._orientation === Orientation.HORZ) ? tabNode._getAttr("borderWidth") : tabNode._getAttr("borderHeight");
             if (tabBorderSize === -1) {
                 return defaultSize;
             } else {
@@ -207,7 +207,7 @@ export class BorderNode extends Node implements IDropTarget {
             this._attributes.size = pos;
         } else {
             const tabNode = this._children[selected] as TabNode;
-            const tabBorderSize = this._location._orientation === Orientation.HORZ ? tabNode._getAttr("borderWidth") : tabNode._getAttr("borderHeight");
+            const tabBorderSize = (this._location._orientation === Orientation.HORZ) ? tabNode._getAttr("borderWidth") : tabNode._getAttr("borderHeight");
             if (tabBorderSize === -1) {
                 this._attributes.size = pos;
             } else {
@@ -258,7 +258,7 @@ export class BorderNode extends Node implements IDropTarget {
 
         this._contentRect = split2.end;
 
-        for (let i = 0; i < this._children.length; i++) {
+        for (let i = 0; i< this._children.length; i++) {
             const child = this._children[i];
             child._layout(this._contentRect!, metrics);
             child._setVisible(i === this.getSelected());
@@ -364,14 +364,6 @@ export class BorderNode extends Node implements IDropTarget {
             }
         }
 
-        // TODO ELSE IF OTHER WINDOW
-        else {
-            const outlineRect = new Rect(x - 2, y, 3, 50);
-            dropInfo = new DropInfo(this, outlineRect, dockLocation, this._children.length, CLASSES.FLEXLAYOUT__OUTLINE_RECT);
-        }
-
-        // TODO remove console log
-        // console.log("CAN DROP: ", dropInfo);
         return dropInfo;
     }
 
@@ -461,4 +453,5 @@ export class BorderNode extends Node implements IDropTarget {
     static getAttributeDefinitions() {
         return BorderNode._attributeDefinitions;
     }
+
 }
