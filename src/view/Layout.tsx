@@ -418,6 +418,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
         // Reset the listener layout ID and drag initialization state
         this.listenerLayoutId = undefined;
         this.dragInitialised = false;
+        this.externalDragStarted = false;
     }
 
     /**
@@ -475,6 +476,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         // Handle negative ping response from the worker
         if (e.data.messageType === WorkerMessageType.NegativePingResponse) {
+            console.log("NegativePingResponse, Out of Bounds!", messageData.messageType);
             this.listenerLayoutId = undefined;
             this.dragInitialised = false;
             return;
@@ -482,6 +484,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
 
         // Check if the mouse event is within the window bounds
         if (this.isMouseEventWithinDesiredBounds(messageData.clientX, messageData.clientY)) {
+            console.log("In Bounds", messageData.messageType);
             switch (messageData.messageType) {
                 case WorkerMessageType.Ping:
                     this._worker?.port.postMessage({ messageType: WorkerMessageType.PositivePingResponse, id: this.id } as PingMessage);
@@ -519,7 +522,10 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                     break;
             }
         } else if (messageData.messageType === WorkerMessageType.InitDrag || messageData.messageType === WorkerMessageType.CoordinatesUpdate) {
+            console.log("Out of Bounds", messageData.messageType);
             this.cancelDragOutsideBounds();
+
+            DragDrop.instance._onMouseUp(e);
         }
     }
 
@@ -1469,6 +1475,7 @@ export class Layout extends React.Component<ILayoutProps, ILayoutState> {
                 originInnerHeight: window.innerHeight,
             };
 
+            this.dragInitialised = false;
             this.postWorkerMessage(data);
         }
     }
