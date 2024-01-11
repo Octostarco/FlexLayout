@@ -6,11 +6,7 @@
         "module": "CommonJS",
         "target": "ES6",
         "declaration": true,
-<<<<<<< HEAD
-        "declarationDir": "./types/",
-=======
         "declarationDir": "./lib/",
->>>>>>> a087998 (add type declarations to lib folder)
         "stripInternal": true,
         "alwaysStrict": true,
         "forceConsistentCasingInFileNames": true,

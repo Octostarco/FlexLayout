@@ -26,7 +26,7 @@ return /******/ (() => { // webpackBootstrap
   \*****************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\nconst _self = globalThis;\nconst _instances = [];\n_self.onconnect = function (e) {\n    const port = e.ports[0];\n    _instances.push(port);\n    port.addEventListener(\"message\", function (e) {\n        _instances.forEach((i) => i.postMessage(e.data));\n    });\n    port.start(); // Required when using addEventListener. Otherwise called implicitly by onmessage setter.\n};\n\n\n\n//# sourceURL=webpack://FlexLayout/./src/SharedWorker.ts?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"DragMessage\": () => (/* binding */ DragMessage),\n/* harmony export */   \"DragMessageUpdate\": () => (/* binding */ DragMessageUpdate),\n/* harmony export */   \"PingMessage\": () => (/* binding */ PingMessage),\n/* harmony export */   \"WorkerMessageType\": () => (/* binding */ WorkerMessageType)\n/* harmony export */ });\nconst _self = globalThis;\nconst _instances = [];\n_self.onconnect = function (e) {\n    const port = e.ports[0];\n    _instances.push(port);\n    port.addEventListener(\"message\", function (e) {\n        _instances.forEach((i) => i.postMessage(e.data));\n    });\n    port.start(); // Required when using addEventListener. Otherwise called implicitly by onmessage setter.\n};\nvar WorkerMessageType;\n(function (WorkerMessageType) {\n    WorkerMessageType[WorkerMessageType[\"Ping\"] = 0] = \"Ping\";\n    WorkerMessageType[WorkerMessageType[\"PositivePingResponse\"] = 1] = \"PositivePingResponse\";\n    WorkerMessageType[WorkerMessageType[\"NegativePingResponse\"] = 2] = \"NegativePingResponse\";\n    WorkerMessageType[WorkerMessageType[\"InitDrag\"] = 3] = \"InitDrag\";\n    WorkerMessageType[WorkerMessageType[\"CoordinatesUpdate\"] = 4] = \"CoordinatesUpdate\";\n    WorkerMessageType[WorkerMessageType[\"Drop\"] = 5] = \"Drop\";\n})(WorkerMessageType || (WorkerMessageType = {}));\nclass PingMessage {\n}\nclass DragMessage extends PingMessage {\n    constructor() {\n        super(...arguments);\n        this.messageType = WorkerMessageType.InitDrag;\n    }\n}\nclass DragMessageUpdate extends PingMessage {\n    constructor() {\n        super(...arguments);\n        this.messageType = WorkerMessageType.CoordinatesUpdate;\n    }\n}\n\n\n//# sourceURL=webpack://FlexLayout/./src/SharedWorker.ts?");
 
 /***/ })
 
@@ -36,6 +36,23 @@ eval("__webpack_require__.r(__webpack_exports__);\nconst _self = globalThis;\nco
 /******/ 	var __webpack_require__ = {};
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/make namespace object */
 /******/ 	(() => {
 /******/ 		// define __esModule on exports
